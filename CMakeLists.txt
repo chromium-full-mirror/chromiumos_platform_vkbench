@@ -13,3 +13,8 @@ link_libraries(${Vulkan_LIBRARIES})
 
 add_executable(vkbench src/main.cc src/utils.cc src/testBase.cc src/testUtil.cc
         src/submitTest.cc src/submitTest.h)
+
+install (
+    FILES ${CMAKE_BINARY_DIR}/vkbench
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/bin
+)
