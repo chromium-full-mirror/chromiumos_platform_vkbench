@@ -10,22 +10,24 @@
 namespace vkbench {
 class SubmitTest : public testBase {
  public:
-  SubmitTest(uint64_t submitCnt){
+  SubmitTest(uint64_t submitCnt, vkBase* base) {
+    vk = base;
     sprintf(name_, "SubmitTest@%lu", submitCnt);
     sprintf(desp_, "Times the time used when submitting %lu empty calls.",
             submitCnt);
     smt_infos_.resize(submitCnt);
   }
+  ~SubmitTest() override = default;
+
   const char* Name() const override { return name_; }
   const char* Desp() const override { return desp_; }
-  ~SubmitTest() override = default;
   const char* Unit() const override { return "us"; }
 
  protected:
-  void TestInitialization() override;
-  bool TestRun() override;
-  void TestCleanup() override;
-  void TestDestroy() override;
+  void Initialize() override;
+  void Run() override;
+  void Cleanup() override;
+  void Destroy() override;
 
  private:
   char name_[100];

@@ -3,15 +3,15 @@
 // found in the LICENSE file.
 
 #include "submitTest.h"
-#include "testUtil.h"
 
 namespace vkbench {
-void SubmitTest::TestInitialization() {
-  fences_.push_back(device_.createFence({vk::FenceCreateFlagBits::eSignaled}));
+void SubmitTest::Initialize() {
+  fences_.push_back(
+      vk->GetDevice().createFence({vk::FenceCreateFlagBits::eSignaled}));
   // Create empty cmdBuffer
-  cmd_buffers_ = device_.allocateCommandBuffers(
-      {cmd_pool_, vk::CommandBufferLevel::ePrimary, 1});
-  cmd_buffers_[0].begin({vk::CommandBufferUsageFlagBits::eSimultaneousUse});
+  cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
+      {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
+  cmd_buffers_[0].begin({});
   cmd_buffers_[0].end();
 
   for (auto& t : smt_infos_) {
@@ -20,25 +20,25 @@ void SubmitTest::TestInitialization() {
   }
 }
 
-bool SubmitTest::TestRun() {
-  device_.waitForFences(fences_, VK_TRUE, std::numeric_limits<uint64_t>::max());
-  device_.resetFences(fences_);
-  gfx_queue_.submit(smt_infos_, fences_[0], {});
-  return true;
+void SubmitTest::Run() {
+  // TODO(pwang): Consider using multiple set of command buffers to minimize
+  // the CPU idle time of waiting the fences.
+  vk->GetDevice().waitForFences(fences_, VK_TRUE,
+                                std::numeric_limits<uint64_t>::max());
+  vk->GetDevice().resetFences(fences_);
+  vk->GetGFXQueue().submit(smt_infos_, fences_[0], {});
 }
 
-void SubmitTest::TestCleanup() {
-  device_.waitForFences(fences_, VK_TRUE, std::numeric_limits<uint64_t>::max());
+void SubmitTest::Cleanup() {
+  vk->GetDevice().waitForFences(fences_, VK_TRUE,
+                                std::numeric_limits<uint64_t>::max());
 }
 
-void SubmitTest::TestDestroy() {
-  if (!device_)
-    return;
-
-  if (cmd_pool_)
-    device_.freeCommandBuffers(cmd_pool_, cmd_buffers_);
-  for (auto &fence : fences_) {
-    device_.destroyFence(fence);
+void SubmitTest::Destroy() {
+  vk->GetDevice().freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
+  for (auto& fence : fences_) {
+    vk->GetDevice().destroyFence(fence);
   }
+  fences_.clear();
 }
 }  // namespace vkbench

@@ -6,7 +6,9 @@
 #define __UTILS_H__
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <sys/time.h>
+#include <functional>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
@@ -14,13 +16,6 @@
 extern int g_verbose;
 void PrintDateTime();
 std::vector<std::string> SplitString(const std::string& kInput, char delimiter);
-// For thermal monitoring of system.
-double GetMachineTemperature();
-// Wait for machine to cool with temperature in Celsius and timeout in seconds.
-// Returns the time spent waiting and sets the last observed temperature.
-double WaitForCoolMachine(double cold_temperature,
-                          double timeout,
-                          double* temperature);
 
 inline uint64_t GetUTime() {
   struct timeval tv = {};
@@ -80,5 +75,32 @@ inline void DbgPrintf(const char* filename,
 
 // Ignore warning for linter for unused variable.
 #define UNUSED(x) (void)(x)
+
+class ScopeGuard {
+ public:
+  template <class Callable>
+  ScopeGuard(Callable&& fn) : fn_(std::forward<Callable>(fn)) {}
+
+  ScopeGuard(ScopeGuard&& other) : fn_(std::move(other.fn_)) {
+    other.fn_ = nullptr;
+  }
+
+  ~ScopeGuard() {
+    // must not throw
+    if (fn_)
+      fn_();
+  }
+
+  ScopeGuard(const ScopeGuard&) = delete;
+  void operator=(const ScopeGuard&) = delete;
+
+ private:
+  std::function<void()> fn_;
+};
+
+// Used to defer a function call for cleanup
+#define CONCAT_(a, b) a##b
+#define CONCAT(a, b) CONCAT_(a, b)
+#define DEFER(fn) ScopeGuard CONCAT(__defer__, __LINE__) = [&]() { fn; }
 
 #endif

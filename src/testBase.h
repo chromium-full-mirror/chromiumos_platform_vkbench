@@ -5,16 +5,16 @@
 #ifndef __VKBENCH_TESTBASE_H__
 #define __VKBENCH_TESTBASE_H__
 
-#include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
+#include "vkBase.h"
 #include "utils.h"
 
 namespace vkbench {
 class testBase {
  public:
-  virtual ~testBase() = default;
+  virtual ~testBase() {}
   // Name of test.
   virtual const char* Name() const = 0;
   // Description of the test.
@@ -24,44 +24,21 @@ class testBase {
   // Given time elapse per iteration, format it into meaningful numbers.
   virtual double FormatMeasurement(double time) { return time; }
 
-  // Vulkan initialization for allocating universal resources. Must be called
-  // before TestInitialization.
-  virtual void VkInitialization();
   // Test related resources allocation. The resources allocated here would be
-  // shared by all TestRun iterations. Time spent here will not be recorded.
-  virtual void TestInitialization(){}
+  // shared by all Run iterations. Time spent here will not be recorded.
+  virtual void Initialize() {}
   // Test configuration before running the test. This will run once before
-  // each TestRun loop. Time spent here will be recorded.
-  virtual void TestSetup(){}
+  // each Run loop. Time spent here will be recorded.
+  virtual void Setup() {}
   // Test body. Time spent will be recorded.
-  virtual bool TestRun() = 0;
-  // Test cleanup after looping TestRun. Time spent here will be recorded.
-  virtual void TestCleanup() = 0;
-  // Free and Destroy any resources allocated during TestInitialization. Time
+  virtual void Run() = 0;
+  // Test cleanup after looping Run. Time spent here will be recorded.
+  virtual void Cleanup() = 0;
+  // Free and Destroy any resources allocated during Initialize. Time
   // spent here will not be recorded.
-  virtual void TestDestroy() = 0;
-  // Free and Destroy any general vulkan resources
-  virtual void VkDestroy();
+  virtual void Destroy() = 0;
 
- protected:
-  // Vulkan general method.
-  virtual bool CreateInstance();
-  virtual bool ChoosePhysical_device_();
-  virtual bool CreateLogicalDevice();
-  virtual bool CreateCommandPool();
-
-  // Vulkan handles
-  const std::vector<const char*> kValidation_layers_ = {
-      "VK_LAYER_LUNARG_standard_validation", "VK_LAYER_GOOGLE_threading"};
-  bool enable_validation_layer_ = false;
-
-  vk::DebugUtilsMessengerEXT debug_messenger_;
-  vk::Instance instance_;
-  vk::PhysicalDevice physical_device_;
-  vk::Device device_;
-  vk::Queue gfx_queue_;
-  vk::CommandPool cmd_pool_;
-  uint32_t gfx_queue_idx_ = -1;
+  vkbench::vkBase *vk;
 };
 
 }  // namespace vkbench
