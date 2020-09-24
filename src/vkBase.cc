@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <unistd.h>
+#include <algorithm>
 #include <limits>
 #include <vulkan/vulkan.hpp>
 
@@ -13,43 +14,28 @@
 extern int g_vlayer;
 
 namespace vkbench {
-bool IsLayersSupported(const std::vector<const char*>& kLayers) {
+bool IsLayerSupported(const char* layer) {
   std::vector<vk::LayerProperties> availLayers =
       vk::enumerateInstanceLayerProperties();
-  for (const auto& layer : kLayers) {
-    bool found = false;
-    for (const auto availLayer : availLayers) {
-      if (!strcmp(availLayer.layerName, layer)) {
-        DEBUG("%s Layer is support.", layer)
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      DEBUG("Layer %s is not support.", layer)
-      return false;
+  for (const auto& availLayer : availLayers) {
+    if (!strcmp(layer, availLayer.layerName)) {
+      return true;
     }
   }
-  return true;
+  LOG("Layer %s is not support.", layer);
+  return false;
 }
 
-bool IsExtensionSupported(const std::vector<const char*>& kExtensions) {
+bool IsExtensionSupported(const char* ext) {
   std::vector<vk::ExtensionProperties> availExtensions =
       vk::enumerateInstanceExtensionProperties();
-  for (const auto extension : kExtensions) {
-    bool found = false;
-    for (const auto availExtension : availExtensions) {
-      if (!strcmp(availExtension.extensionName, extension)) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      DEBUG("Extension %s is not supported.", extension)
-      return false;
+  for (const auto& availExtension : availExtensions) {
+    if (!strcmp(ext, availExtension.extensionName)) {
+      return true;
     }
   }
-  return true;
+  DEBUG("Extension %s is not supported.", ext);
+  return false;
 }
 
 vk::Result CreateDebugUtilsMessengerEXT(
@@ -116,36 +102,47 @@ ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                    void* pUserData) {
   UNUSED(messageType);
   UNUSED(pUserData);
-  if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-    DEBUG("%s", kPcallbackData->pMessage)
-  } else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT ||
-             messageSeverity ==
-                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    LOG("%s", kPcallbackData->pMessage)
-  } else if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    ERROR("%s", kPcallbackData->pMessage)
-  } else {
-    ABORT(1, "%s", kPcallbackData->pMessage)
+  switch (messageSeverity) {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+      DEBUG("%s", kPcallbackData->pMessage);
+      break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+      LOG("%s", kPcallbackData->pMessage);
+      break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+      ERROR("%s", kPcallbackData->pMessage);
+      break;
+    default:
+      ABORT(1, "%s", kPcallbackData->pMessage);
   }
   return VK_FALSE;
 }
 
 void vkBase::CreateInstance() {
-  const std::vector<const char*> kDebugExtension = {"VK_EXT_debug_utils"};
   vk::ApplicationInfo appInfo("vkbench", 1, "Vulkan.hpp", 1,
                               VK_API_VERSION_1_1);
   vk::InstanceCreateInfo createInfo({}, &appInfo);
 
   if (g_vlayer) {
-    if (!IsLayersSupported(kValidation_layers_) ||
-        !IsExtensionSupported(kDebugExtension)) {
-      DEBUG("Validation layer is not supported. Less log will be printed.")
+    validation_layers_.erase(
+        std::remove_if(
+            validation_layers_.begin(), validation_layers_.end(),
+            [](const char* layer) { return !IsLayerSupported(layer); }),
+        validation_layers_.end());
+    debug_extension_.erase(
+        std::remove_if(
+            debug_extension_.begin(), debug_extension_.end(),
+            [](const char* ext) { return !IsExtensionSupported(ext); }),
+        debug_extension_.end());
+    if (validation_layers_.size() == 0 || debug_extension_.size() == 0) {
+      LOG("Validation layer is not supported. Less log will be printed.")
       enable_validation_layer_ = false;
     } else {
-      createInfo.setEnabledExtensionCount(kDebugExtension.size())
-          .setPpEnabledExtensionNames(kDebugExtension.data())
-          .setEnabledLayerCount(kValidation_layers_.size())
-          .setPpEnabledLayerNames(kValidation_layers_.data());
+      createInfo.setEnabledExtensionCount(debug_extension_.size())
+          .setPpEnabledExtensionNames(debug_extension_.data())
+          .setEnabledLayerCount(validation_layers_.size())
+          .setPpEnabledLayerNames(validation_layers_.data());
       enable_validation_layer_ = true;
     }
   }
@@ -180,8 +177,8 @@ void vkBase::CreateLogicalDevice() {
   vk::DeviceQueueCreateInfo queueCreateInfo({}, gfx_queue_idx_, 1, &tmp);
   vk::DeviceCreateInfo deviceCreateInfo({}, 1, &queueCreateInfo);
   if (enable_validation_layer_) {
-    deviceCreateInfo.setEnabledLayerCount(kValidation_layers_.size());
-    deviceCreateInfo.setPpEnabledLayerNames(kValidation_layers_.data());
+    deviceCreateInfo.setEnabledLayerCount(validation_layers_.size());
+    deviceCreateInfo.setPpEnabledLayerNames(validation_layers_.data());
   }
   device_ = physical_device_.createDevice(deviceCreateInfo);
   gfx_queue_ = device_.getQueue(gfx_queue_idx_, /* Queue Index */ 0);

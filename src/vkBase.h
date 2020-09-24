@@ -19,9 +19,7 @@ class vkBase {
 
   const vk::Device& GetDevice() { return device_; }
   const vk::Queue& GetGFXQueue() { return gfx_queue_; }
-  const vk::CommandPool& GetCommandPool() {
-    return cmd_pool_;
-  }
+  const vk::CommandPool& GetCommandPool() { return cmd_pool_; }
 
  protected:
   // Vulkan general method.
@@ -31,8 +29,9 @@ class vkBase {
   virtual void CreateCommandPool();
 
   // Vulkan handles
-  const std::vector<const char*> kValidation_layers_ = {
-      "VK_LAYER_LUNARG_standard_validation"};
+  std::vector<const char*> validation_layers_{
+      "VK_LAYER_LUNARG_standard_validation", "VK_LAYER_KHRONOS_validation"};
+  std::vector<const char*> debug_extension_ = {"VK_EXT_debug_utils"};
   bool enable_validation_layer_ = false;
 
   vk::DebugUtilsMessengerEXT debug_messenger_;
@@ -43,7 +42,7 @@ class vkBase {
   vk::CommandPool cmd_pool_;
   uint32_t gfx_queue_idx_ = -1;
 
-private:
+ private:
   bool initialized = false;
 };
 

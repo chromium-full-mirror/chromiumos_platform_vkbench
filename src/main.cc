@@ -38,11 +38,16 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   uint64_t start = GetUTime();
   try {
     test->Setup();
+  } catch (const ERROR_TYPE& type) {
+    LOG("Test failed to setup");
     DEFER(test->Cleanup());
+    throw TEST_INITIALIZATION_FAIL;
   } catch (const vk::SystemError& err) {
     LOG("Setup failed: %s", err.what());
+    DEFER(test->Cleanup());
     throw TEST_INITIALIZATION_FAIL;
   }
+  DEFER(test->Cleanup());
 
   try {
     for (int i = 0; i < iteration; i++) {
