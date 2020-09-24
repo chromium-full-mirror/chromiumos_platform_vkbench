@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "constant.h"
+#include "drawSizeTest.h"
 #include "submitTest.h"
 #include "utils.h"
 
@@ -38,14 +39,10 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   uint64_t start = GetUTime();
   try {
     test->Setup();
-  } catch (const ERROR_TYPE& type) {
-    LOG("Test failed to setup");
-    DEFER(test->Cleanup());
-    throw TEST_INITIALIZATION_FAIL;
   } catch (const vk::SystemError& err) {
     LOG("Setup failed: %s", err.what());
-    DEFER(test->Cleanup());
-    throw TEST_INITIALIZATION_FAIL;
+    test->Cleanup();
+    throw;
   }
   DEFER(test->Cleanup());
 
@@ -65,14 +62,10 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
 void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   try {
     test->Initialize();
-  } catch (const ERROR_TYPE& type) {
-    LOG("Test failed to initialize");
-    DEFER(test->Destroy());
-    throw TEST_INITIALIZATION_FAIL;
   } catch (const vk::SystemError& err) {
     LOG("Test failed to initialize: %s", err.what());
-    DEFER(test->Destroy());
-    throw TEST_INITIALIZATION_FAIL;
+    test->Destroy();
+    throw;
   }
   DEFER(test->Destroy());
 
@@ -97,6 +90,11 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
     LOG("%s: measurement may not be accurate.", test->Name())
   score = test->FormatMeasurement(score);
   LOG("@RESULT: %46s = %10.2f %-15s", test->Name(), score, test->Unit());
+  try {
+    test->SaveImage(((std::string)test->Name()));
+  } catch (std::runtime_error err) {
+    DEBUG("Get runtime_error while SaveImage: %s.", err.what());
+  }
 }
 
 void PrintHelp() {
@@ -179,7 +177,19 @@ int main(int argc, char* argv[]) {
       new vkbench::SubmitTest(100, &simpleVulkan),
       new vkbench::SubmitTest(1000, &simpleVulkan),
       new vkbench::SubmitTest(10000, &simpleVulkan),
+      new vkbench::SubmitTest(100000, &simpleVulkan),
+      new vkbench::DrawSizeTest(16, &simpleVulkan),
+      new vkbench::DrawSizeTest(64, &simpleVulkan),
+      new vkbench::DrawSizeTest(128, &simpleVulkan),
+      new vkbench::DrawSizeTest(512, &simpleVulkan),
+      new vkbench::DrawSizeTest(1024, &simpleVulkan),
   };
+
+  // Sort to bundle tests using same vulkan instance together.
+  std::stable_sort(all_tests.begin(), all_tests.end(),
+                   [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
+                     return a->vk < b->vk;
+                   });
 
   if (!ParseArgv(argc, argv, all_tests)) {
     return 0;
@@ -190,13 +200,12 @@ int main(int argc, char* argv[]) {
   PrintDateTime();
   for (auto i = 0; i < all_tests.size(); i++) {
     auto& test = all_tests[i];
-    bool continue_flag = true;
     bool reuse_vulkan = false;
     if (i + 1 < all_tests.size() && all_tests[i]->vk == all_tests[i + 1]->vk) {
       reuse_vulkan = true;
     }
 
-    for (auto iter = 0; iter < g_iteration && continue_flag; iter++) {
+    for (auto iter = 0; iter < g_iteration; iter++) {
       try {
         test->vk->Initialize();
         Run(test, 1000000);
@@ -209,16 +218,13 @@ int main(int argc, char* argv[]) {
           case TEST_FAIL:
             failed_test[test->Name()] += 1;
             break;
-          case VULKAN_INITIALIZATION_FAIL:
-            test->vk->Destroy();
-          case TEST_INITIALIZATION_FAIL:
-            failed_test[test->Name()] += 1;
-            continue_flag = false;
-            break;
           default:
             ERROR("Unimplemented error type");
             throw;
         }
+      } catch (const std::runtime_error error) {
+        failed_test[test->Name()] += 1;
+        LOG("Runtime Error: %s", error.what());
       }
     }
   }

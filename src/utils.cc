@@ -26,6 +26,51 @@ void PrintDateTime() {
   LOG("# DateTime: %s", buffer)
 }
 
+std::string readFile(const std::string& filename) {
+  std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+  if (!file.is_open()) {
+    throw std::runtime_error("Failed to open file!");
+  }
+  DEFER(file.close());
+
+  size_t fileSize = (size_t)file.tellg();
+  std::vector<char> buffer(fileSize);
+  file.seekg(0);
+  file.read(buffer.data(), fileSize);
+  return std::string(buffer.begin(), buffer.end());
+}
+
+// CreateShaderModule creates a shader module from a loaded SPIR-V code.
+vk::ShaderModule CreateShaderModule(const vk::Device& device,
+                                    std::string code) {
+  vk::ShaderModuleCreateInfo create_info;
+  create_info.setCodeSize(code.length());
+  create_info.setPCode(reinterpret_cast<const uint32_t*>(code.c_str()));
+  return device.createShaderModule(create_info);
+}
+
+// SavePPM saves data into filename in PPM format. It assumes data is in
+// R8G8B8A8_UNORM format.
+void SavePPM(std::string filename,
+             const char* data,
+             uint32_t width,
+             uint32_t height,
+             vk::DeviceSize row_pitch) {
+  std::ofstream file(filename, std::ios::binary | std::ios::out);
+  DEFER(file.close());
+
+  file << "P6\n" << width << "\n" << height << "\n" << 255 << std::endl;
+  for (uint32_t y = 0; y < height; y++) {
+    unsigned int* row = (unsigned int*)data;
+    for (uint32_t x = 0; x < width; x++) {
+      file.write((char*)row, 3);
+      row++;
+    }
+    data += row_pitch;
+  }
+}
+
 /* Execute a shell command and return its file descriptor for reading output. */
 /* @param command: command to be run. */
 /* @param result: the stdout of the command output. */

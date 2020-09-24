@@ -8,8 +8,8 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-#include "vkBase.h"
 #include "utils.h"
+#include "vkBase.h"
 
 namespace vkbench {
 class testBase {
@@ -24,6 +24,11 @@ class testBase {
   // Given time elapse per iteration, format it into meaningful numbers.
   virtual double FormatMeasurement(double time) { return time; }
 
+  // SaveImage saves the rendered image to file_name.
+  virtual void SaveImage(std::string file_name) const {
+    throw std::runtime_error("Not Implemented!");
+  };
+
   // Test related resources allocation. The resources allocated here would be
   // shared by all Run iterations. Time spent here will not be recorded.
   virtual void Initialize() {}
@@ -33,12 +38,12 @@ class testBase {
   // Test body. Time spent will be recorded.
   virtual void Run() = 0;
   // Test cleanup after looping Run. Time spent here will be recorded.
-  virtual void Cleanup() = 0;
+  virtual void Cleanup() {};
   // Free and Destroy any resources allocated during Initialize. Time
   // spent here will not be recorded.
   virtual void Destroy() = 0;
 
-  vkbench::vkBase *vk;
+  vkbench::vkBase* vk;
 };
 
 }  // namespace vkbench

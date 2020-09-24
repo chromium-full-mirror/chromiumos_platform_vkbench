@@ -12,8 +12,32 @@ link_libraries(${Vulkan_LIBRARIES})
 
 # Suppress deprecated warning
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")
-add_executable(vkbench src/main.cc src/utils.cc src/vkBase.cc
-        src/submitTest.cc)
+
+# GLSL files to SPIR-V.
+# TODO: Detect if glslangValidator exist or not.
+set(GLSL_VALIDATOR "glslangValidator")
+file(GLOB_RECURSE GLSL_SOURCE_FILES
+  "src/shaders/*.frag"
+  "src/shaders/*.vert"
+)
+foreach(GLSL ${GLSL_SOURCE_FILES})
+    get_filename_component(FILE_NAME ${GLSL} NAME)
+    set(SPIRV "${PROJECT_BINARY_DIR}/shaders/${FILE_NAME}.spv")
+    add_custom_command(
+        OUTPUT ${SPIRV}
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/shaders/"
+        COMMAND ${GLSL_VALIDATOR} -V ${GLSL} -o ${SPIRV}
+        DEPENDS ${GLSL})
+    list(APPEND SPIRV_BINARY_FILES ${SPIRV})
+endforeach(GLSL)
+add_custom_target(
+    Shaders
+    DEPENDS ${SPIRV_BINARY_FILES}
+)
+
+file(GLOB_RECURSE SRC_FILES "src/*.cc")
+add_executable(vkbench ${SRC_FILES})
+add_dependencies(vkbench Shaders)
 
 install (
     FILES ${CMAKE_BINARY_DIR}/vkbench

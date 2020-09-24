@@ -16,6 +16,9 @@
 extern int g_verbose;
 void PrintDateTime();
 std::vector<std::string> SplitString(const std::string& kInput, char delimiter);
+std::string readFile(const std::string& filename);
+void SavePPM(std::string, const char*, uint32_t, uint32_t, vk::DeviceSize);
+vk::ShaderModule CreateShaderModule(const vk::Device& device, std::string code);
 
 inline uint64_t GetUTime() {
   struct timeval tv = {};
@@ -44,6 +47,14 @@ inline void DbgPrintf(const char* filename,
   }
   vfprintf(fileid, string_format, args);
   va_end(args);
+}
+
+inline void VkCheck(const vk::Result& result, const char* func_str) {
+  if (result != vk::Result::eSuccess) {
+    char msg[1024];
+    snprintf(msg, 1024, "%s failed: %s", func_str, vk::to_string(result));
+    throw std::runtime_error(msg);
+  }
 }
 
 #define DEBUG(fmt, ...)        \
