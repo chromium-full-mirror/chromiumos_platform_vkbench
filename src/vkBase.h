@@ -35,6 +35,7 @@ class vkBase {
  public:
   virtual ~vkBase() = default;
   virtual void Initialize();
+  virtual bool IsInitialized() const;
   virtual void Destroy();
 
   const vk::Device& GetDevice() const { return device_; }

@@ -21,6 +21,9 @@ int g_iteration = 1;
 int g_verbose = false;
 // g_vlayer enables the vulkan verification layer if it is set.
 int g_vlayer = false;
+// g_hasty enables the hasty mode. Tests would tries to reuse vulkan instance if
+// possible.
+int g_hasty = false;
 
 // kLongOptions defines the options for argument options.
 const static struct option kLongOptions[] = {
@@ -31,6 +34,7 @@ const static struct option kLongOptions[] = {
     {"help", no_argument, nullptr, 'h'},
     {"vlayer", no_argument, &g_vlayer, 1},
     {"verbose", no_argument, &g_verbose, 1},
+    {"hasty", no_argument, &g_hasty, 1},
     {0, 0, 0, 0}};
 
 // TimeTest times the test by looping it iteration times.
@@ -106,7 +110,8 @@ Usage: vkbench [OPTIONS]
   -b, --blacklist=TESTS  Tests to not run in colon separated form.
   --list                 List the tests available.
   --verbose              Show verbose messages.
-  --vlayer               Enable vulkan verification layer.),")
+  --vlayer               Enable vulkan verification layer.
+  --hasty                Enable hasty mode.),")
 }
 
 bool prefixFind(std::vector<std::string> list, std::string name) {
@@ -202,16 +207,12 @@ int main(int argc, char* argv[]) {
   PrintDateTime();
   for (auto i = 0; i < all_tests.size(); i++) {
     auto& test = all_tests[i];
-    bool reuse_vulkan = false;
-    if (i + 1 < all_tests.size() && all_tests[i]->vk == all_tests[i + 1]->vk) {
-      reuse_vulkan = true;
-    }
-
     for (auto iter = 0; iter < g_iteration; iter++) {
       try {
-        test->vk->Initialize();
+        if (!test->vk->IsInitialized())
+          test->vk->Initialize();
         Run(test, 1000000);
-        if (!reuse_vulkan)
+        if (!g_hasty)
           test->vk->Destroy();
       } catch (const ERROR_TYPE& type) {
         switch (type) {
@@ -227,6 +228,13 @@ int main(int argc, char* argv[]) {
       } catch (const std::runtime_error error) {
         failed_test[test->Name()] += 1;
         LOG("Runtime Error: %s", error.what());
+      }
+    }
+
+    // keep test->vk initialized for the next test.
+    if (g_hasty && test->vk->IsInitialized()) {
+      if (i + 1 >= all_tests.size() || test->vk != all_tests[i + 1]->vk) {
+        test->vk->Destroy();
       }
     }
   }

@@ -43,6 +43,7 @@ void ClearTest::Destroy() {
   device.destroyFramebuffer(frame_buffer_);
   device.destroyRenderPass(render_pass_);
   device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
+  smt_infos_.clear();
 }
 
 void ClearTest::CreateRenderPass() {

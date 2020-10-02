@@ -13,7 +13,7 @@ void DrawSizeTest::Initialize() {
   cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
   for (const auto& buffer : cmd_buffers_) {
-    buffer.begin({});
+    buffer.begin(vk::CommandBufferBeginInfo());
     vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f});
     vk::RenderPassBeginInfo render_pass_info;
     render_pass_info.setFramebuffer(frame_buffer_)
@@ -27,7 +27,6 @@ void DrawSizeTest::Initialize() {
     buffer.endRenderPass();
     buffer.end();
   }
-
   vk::SubmitInfo info;
   info.setCommandBufferCount(1).setPCommandBuffers(cmd_buffers_.data());
   smt_infos_.push_back(info);
@@ -48,6 +47,7 @@ void DrawSizeTest::Destroy() {
   device.destroyPipeline(graphics_pipeline_);
   device.destroyPipelineLayout(pipeline_layout_);
   device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
+  smt_infos_.clear();
 }
 
 void DrawSizeTest::CreateRenderPass() {

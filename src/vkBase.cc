@@ -143,13 +143,15 @@ ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 }
 
 void vkBase::Initialize() {
-  if (initialized_)
-    return;
   CreateInstance();
   ChoosePhysicalDevice();
   CreateLogicalDevice();
   CreateCommandPool();
   initialized_ = true;
+}
+
+bool vkBase::IsInitialized() const {
+  return initialized_;
 }
 
 void vkBase::CreateInstance() {
@@ -248,10 +250,6 @@ void vkBase::CreateCommandPool() {
 }
 
 void vkBase::Destroy() {
-  if (!initialized_) {
-    ERROR("Can't destroy any resource without initialization.")
-    return;
-  }
   if (cmd_pool_)
     device_.destroy(cmd_pool_, nullptr);
   device_.destroy();
