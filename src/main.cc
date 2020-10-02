@@ -9,6 +9,7 @@
 #include <map>
 #include <vector>
 
+#include "clearTest.h"
 #include "constant.h"
 #include "drawSizeTest.h"
 #include "submitTest.h"
@@ -183,6 +184,7 @@ int main(int argc, char* argv[]) {
       new vkbench::DrawSizeTest(128, &simpleVulkan),
       new vkbench::DrawSizeTest(512, &simpleVulkan),
       new vkbench::DrawSizeTest(1024, &simpleVulkan),
+      new vkbench::ClearTest(&simpleVulkan),
   };
 
   // Sort to bundle tests using same vulkan instance together.
