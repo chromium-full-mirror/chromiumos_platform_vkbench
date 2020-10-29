@@ -13,8 +13,8 @@ class DrawSizeTest : public testBase {
   DrawSizeTest(uint64_t size, vkBase* base) {
     vk = base;
     img_size_.setHeight(size).setWidth(size);
-    snprintf(name_, 100, "DrawSizeTest@%lu", img_size_.height);
-    snprintf(desp_, 1024, "Time to draw %lux%lu image.", img_size_.height,
+    snprintf(name_, 100, "DrawSizeTest@%u", img_size_.height);
+    snprintf(desp_, 1024, "Time to draw %ux%u image.", img_size_.height,
              img_size_.width);
   }
   ~DrawSizeTest() override = default;

@@ -52,7 +52,8 @@ inline void DbgPrintf(const char* filename,
 inline void VkCheck(const vk::Result& result, const char* func_str) {
   if (result != vk::Result::eSuccess) {
     char msg[1024];
-    snprintf(msg, 1024, "%s failed: %s", func_str, vk::to_string(result));
+    snprintf(msg, 1024, "%s failed: %s", func_str,
+             vk::to_string(result).c_str());
     throw std::runtime_error(msg);
   }
 }

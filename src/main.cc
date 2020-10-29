@@ -15,23 +15,28 @@
 #include "submitTest.h"
 #include "utils.h"
 
+// g_list determines should we show the test list.
+int g_list = false;
 // g_iteration determines the total iteration to run for each test
 int g_iteration = 1;
-// g_verbose determine the logging level to print into the screen.
+// g_verbose determines the logging level to print into the screen.
 int g_verbose = false;
 // g_vlayer enables the vulkan verification layer if it is set.
 int g_vlayer = false;
 // g_hasty enables the hasty mode. Tests would tries to reuse vulkan instance if
 // possible.
 int g_hasty = false;
+// g_spirv_dir is the path to the folder contains spirv code for test.
+std::string g_spirv_dir = "shaders/";
 
 // kLongOptions defines the options for argument options.
 const static struct option kLongOptions[] = {
     {"iterations", required_argument, nullptr, 'i'},
     {"tests", required_argument, nullptr, 't'},
     {"blacklist", required_argument, nullptr, 'b'},
-    {"list", no_argument, nullptr, 'l'},
+    {"spirv_dir", required_argument, nullptr, 's'},
     {"help", no_argument, nullptr, 'h'},
+    {"list", no_argument, &g_list, 1},
     {"vlayer", no_argument, &g_vlayer, 1},
     {"verbose", no_argument, &g_verbose, 1},
     {"hasty", no_argument, &g_hasty, 1},
@@ -111,7 +116,8 @@ Usage: vkbench [OPTIONS]
   --list                 List the tests available.
   --verbose              Show verbose messages.
   --vlayer               Enable vulkan verification layer.
-  --hasty                Enable hasty mode.),")
+  --hasty                Enable hasty mode.
+  --spirv_dir            Path to SPIRV code for test.(default: shaders/)),")
 }
 
 bool prefixFind(std::vector<std::string> list, std::string name) {
@@ -130,7 +136,6 @@ bool ParseArgv(int argc,
   std::vector<std::string> disabled_tests;
   int c;
   int option_index = 0;
-  bool print_test = false;
   while ((c = getopt_long(argc, argv, "i:t:b:", kLongOptions, &option_index)) !=
          -1) {
     if (c == 'i') {
@@ -139,8 +144,8 @@ bool ParseArgv(int argc,
       enabled_tests = SplitString(std::string(optarg), ':');
     } else if (c == 'b') {
       disabled_tests = SplitString(std::string(optarg), ':');
-    } else if (c == 'l') {
-      print_test = true;
+    } else if (c == 's') {
+      g_spirv_dir = std::string(optarg);
     } else if (c == '?' || c == 'h') {
       PrintHelp();
       return false;
@@ -166,7 +171,7 @@ bool ParseArgv(int argc,
                 }),
       all_tests.end());
 
-  if (print_test) {
+  if (g_list) {
     for (const auto& test : all_tests) {
       LOG("%s: %s", test->Name(), test->Desp())
     }

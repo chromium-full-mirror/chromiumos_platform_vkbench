@@ -4,6 +4,8 @@
 
 #include "drawSizeTest.h"
 
+extern std::string g_spirv_dir;
+
 namespace vkbench {
 void DrawSizeTest::Initialize() {
   CreateRenderPass();
@@ -76,8 +78,10 @@ void DrawSizeTest::CreateRenderPass() {
 }
 
 void DrawSizeTest::CreateGraphicsPipeline() {
-  std::string vert_shader_code = readFile("shaders/drawSizeTest.vert.spv");
-  std::string frag_shader_code = readFile("shaders/drawSizeTest.frag.spv");
+  std::string vert_shader_code =
+      readFile(g_spirv_dir + "drawSizeTest.vert.spv");
+  std::string frag_shader_code =
+      readFile(g_spirv_dir + "drawSizeTest.frag.spv");
   vk::Device device = vk->GetDevice();
 
   vk::ShaderModule vert_shader_module =
