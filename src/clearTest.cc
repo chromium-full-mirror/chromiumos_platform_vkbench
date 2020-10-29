@@ -13,7 +13,7 @@ void ClearTest::Initialize() {
   cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
   for (const auto& buffer : cmd_buffers_) {
-    buffer.begin({});
+    buffer.begin(vk::CommandBufferBeginInfo());
     vk::RenderPassBeginInfo render_pass_info;
     render_pass_info.setFramebuffer(frame_buffer_)
         .setRenderPass(render_pass_)

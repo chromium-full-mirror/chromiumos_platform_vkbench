@@ -289,7 +289,7 @@ vkImage* vkBase::GetReadableImage(vkImage* src,
                     vk::MemoryPropertyFlagBits::eHostCoherent |
                         vk::MemoryPropertyFlagBits::eHostVisible,
                     vk::ImageTiling::eLinear);
-  command.begin({});
+  command.begin(vk::CommandBufferBeginInfo());
   vk::ImageMemoryBarrier img_memory_barrier[4];
   // Transition dest image to transfer destination layout.
   img_memory_barrier[0]

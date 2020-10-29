@@ -11,7 +11,7 @@ void SubmitTest::Initialize() {
   // Create empty cmdBuffer
   cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
-  cmd_buffers_[0].begin({});
+  cmd_buffers_[0].begin(vk::CommandBufferBeginInfo());
   cmd_buffers_[0].end();
 
   for (auto& t : smt_infos_) {
