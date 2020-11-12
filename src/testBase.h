@@ -8,8 +8,9 @@
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-#include "utils.h"
+#include "filepath.h"
 #include "vkBase.h"
+#include "utils.h"
 
 namespace vkbench {
 class testBase {
@@ -25,7 +26,7 @@ class testBase {
   virtual double FormatMeasurement(double time) { return time; }
 
   // SaveImage saves the rendered image to file_name.
-  virtual void SaveImage(std::string file_name) const {
+  virtual void SaveImage(FilePath file_path) const {
     throw std::runtime_error("Not Implemented!");
   };
 
@@ -38,7 +39,7 @@ class testBase {
   // Test body. Time spent will be recorded.
   virtual void Run() = 0;
   // Test cleanup after looping Run. Time spent here will be recorded.
-  virtual void Cleanup() {};
+  virtual void Cleanup(){};
   // Free and Destroy any resources allocated during Initialize. Time
   // spent here will not be recorded.
   virtual void Destroy() = 0;

@@ -24,7 +24,7 @@ class ClearTest : public testBase {
   virtual double FormatMeasurement(double time) override {
     return img_size_.width * img_size_.height / time;
   }
-  void SaveImage(std::string filename) const override;
+  void SaveImage(FilePath file_path) const override;
 
  protected:
   void Initialize() override;

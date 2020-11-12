@@ -7,17 +7,20 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <functional>
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
+#include "filepath.h"
+
 extern int g_verbose;
 void PrintDateTime();
 std::vector<std::string> SplitString(const std::string& kInput, char delimiter);
-std::string readFile(const std::string& filename);
-void SavePPM(std::string, const char*, uint32_t, uint32_t, vk::DeviceSize);
+std::string readShaderFile(const std::string& filename);
+void SavePPM(FilePath, const char*, uint32_t, uint32_t, vk::DeviceSize);
 vk::ShaderModule CreateShaderModule(const vk::Device& device, std::string code);
 
 inline uint64_t GetUTime() {
@@ -29,6 +32,8 @@ inline uint64_t GetUTime() {
 bool IsItemInVector(const std::vector<std::string>& list,
                     const char* value,
                     bool empty_value);
+bool check_file_existence(const char* file_path, struct stat* buffer = NULL);
+bool check_dir_existence(const char* file_path);
 
 inline void DbgPrintf(const char* filename,
                       int line,

@@ -101,7 +101,7 @@ void ClearTest::CreateFrameBuffers() {
   frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
 
-void ClearTest::SaveImage(std::string filename) const {
+void ClearTest::SaveImage(FilePath file_path) const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = vk->GetReadableImage(img_, img_size_, img_format_);
   DEFER(delete dest);
@@ -110,10 +110,9 @@ void ClearTest::SaveImage(std::string filename) const {
   const char* data =
       (const char*)device.mapMemory(dest->GetMemory(), 0, VK_WHOLE_SIZE);
   data += sub_resource_layout.offset;
-  SavePPM(filename, data, img_size_.width, img_size_.height,
+  SavePPM(file_path, data, img_size_.width, img_size_.height,
           sub_resource_layout.rowPitch);
-
-  DEBUG("Saved image to %s", filename.c_str());
+  DEBUG("Saved image to %s", file_path.value().c_str());
 }
 
 }  // namespace vkbench

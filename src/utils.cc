@@ -14,6 +14,8 @@
 
 #include "utils.h"
 
+extern FilePath g_spirv_dir;
+
 const std::string kTemperatureScript =
     "/usr/local/autotest/bin/temperature.py --maximum";
 
@@ -26,11 +28,11 @@ void PrintDateTime() {
   LOG("# DateTime: %s", buffer)
 }
 
-std::string readFile(const std::string& filename) {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-
+std::string readShaderFile(const std::string& filename) {
+  FilePath file_path = g_spirv_dir.Append(FilePath(filename));
+  std::ifstream file(file_path.value(), std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
-    throw std::runtime_error("Failed to open " + filename);
+    throw std::runtime_error("Failed to open " + file_path.value());
   }
   DEFER(file.close());
 
@@ -50,14 +52,17 @@ vk::ShaderModule CreateShaderModule(const vk::Device& device,
   return device.createShaderModule(create_info);
 }
 
-// SavePPM saves data into filename in PPM format. It assumes data is in
+// SavePPM saves data into file_path in PPM format. It assumes data is in
 // R8G8B8A8_UNORM format.
-void SavePPM(std::string filename,
+void SavePPM(FilePath file_path,
              const char* data,
              uint32_t width,
              uint32_t height,
              vk::DeviceSize row_pitch) {
-  std::ofstream file(filename, std::ios::binary | std::ios::out);
+  FilePath directory = file_path.DirName();
+  CreateDirectory(directory);
+
+  std::ofstream file(file_path.value(), std::ios::binary | std::ios::out);
   DEFER(file.close());
 
   file << "P6\n" << width << "\n" << height << "\n" << 255 << std::endl;
@@ -109,4 +114,20 @@ bool IsItemInVector(const std::vector<std::string>& list,
   if (list.empty())
     return empty_value;
   return !(find(list.begin(), list.end(), std::string(value)) == list.end());
+}
+
+bool check_file_existence(const char* file_path, struct stat* buffer) {
+    struct stat local_buf;
+    bool exist = stat(file_path, &local_buf) == 0;
+    if (buffer && exist)
+        memcpy(buffer, &local_buf, sizeof(local_buf));
+    return exist;
+}
+
+bool check_dir_existence(const char* file_path) {
+    struct stat buffer;
+    bool exist = check_file_existence(file_path, &buffer);
+    if (!exist)
+        return false;
+    return S_ISDIR(buffer.st_mode);
 }

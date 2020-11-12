@@ -12,6 +12,7 @@
 #include "clearTest.h"
 #include "constant.h"
 #include "drawSizeTest.h"
+#include "filepath.h"
 #include "submitTest.h"
 #include "utils.h"
 
@@ -27,7 +28,9 @@ int g_vlayer = false;
 // possible.
 int g_hasty = false;
 // g_spirv_dir is the path to the folder contains spirv code for test.
-std::string g_spirv_dir = "shaders/";
+FilePath g_spirv_dir = FilePath("shaders");
+// g_out_dir is the path to the folder to store the output image.
+FilePath g_out_dir = FilePath("");
 
 // kLongOptions defines the options for argument options.
 const static struct option kLongOptions[] = {
@@ -35,6 +38,7 @@ const static struct option kLongOptions[] = {
     {"tests", required_argument, nullptr, 't'},
     {"blacklist", required_argument, nullptr, 'b'},
     {"spirv_dir", required_argument, nullptr, 's'},
+    {"out_dir", required_argument, nullptr, 'o'},
     {"help", no_argument, nullptr, 'h'},
     {"list", no_argument, &g_list, 1},
     {"vlayer", no_argument, &g_vlayer, 1},
@@ -101,7 +105,7 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   score = test->FormatMeasurement(score);
   LOG("@RESULT: %46s = %10.2f %-15s", test->Name(), score, test->Unit());
   try {
-    test->SaveImage(((std::string)test->Name()));
+    test->SaveImage(g_out_dir.Append(FilePath(test->Name())));
   } catch (std::runtime_error err) {
     DEBUG("Get runtime_error while SaveImage: %s.", err.what());
   }
@@ -117,7 +121,8 @@ Usage: vkbench [OPTIONS]
   --verbose              Show verbose messages.
   --vlayer               Enable vulkan verification layer.
   --hasty                Enable hasty mode.
-  --spirv_dir            Path to SPIRV code for test.(default: shaders/)),")
+  --spirv_dir            Path to SPIRV code for test.(default: shaders/)
+  --out_dir              Path to the output directory.),")
 }
 
 bool prefixFind(std::vector<std::string> list, std::string name) {
@@ -145,7 +150,9 @@ bool ParseArgv(int argc,
     } else if (c == 'b') {
       disabled_tests = SplitString(std::string(optarg), ':');
     } else if (c == 's') {
-      g_spirv_dir = std::string(optarg);
+      g_spirv_dir = FilePath(optarg);
+    } else if (c == 'o') {
+      g_out_dir = FilePath(optarg);
     } else if (c == '?' || c == 'h') {
       PrintHelp();
       return false;
