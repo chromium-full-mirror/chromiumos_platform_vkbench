@@ -17,6 +17,7 @@ class FilePath {
 
   FilePath DirName();
   const std::string& value() const;
+  const char* c_str() const;
   bool IsSeparator(char character);
   FilePath Append(const FilePath& path);
   void StripTrailingSeparatorsInternal();

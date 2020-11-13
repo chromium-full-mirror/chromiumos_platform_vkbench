@@ -46,6 +46,10 @@ const std::string& FilePath::value() const {
   return this->path_;
 }
 
+const char* FilePath::c_str() const {
+  return this->path_.c_str();
+}
+
 bool FilePath::IsSeparator(char character) {
   for (size_t i = 0; i < strlen(kSeparators) - 1; ++i) {
     if (character == kSeparators[i]) {
@@ -149,18 +153,17 @@ bool CreateDirectory(FilePath& full_path) {
 
   // Iterate through the parents and create the missing ones.
   for (auto i = subpaths.rbegin(); i != subpaths.rend(); ++i) {
-    if (check_dir_existence(i->value().c_str()))
+    if (check_dir_existence(i->c_str()))
       continue;
-    if (mkdir(i->value().c_str(), 0700) == 0)
+    if (mkdir(i->c_str(), 0700) == 0)
       continue;
     // Mkdir failed, but it might have failed with EEXIST, or some other error
     // due to the the directory appearing out of thin air. This can occur if
     // two processes are trying to create the same file system tree at the same
     // time. Check to see if it exists and make sure it is a directory.
-    if (!check_dir_existence(i->value().c_str())) {
+    if (!check_dir_existence(i->c_str())) {
       return false;
     }
   }
   return true;
 }
-

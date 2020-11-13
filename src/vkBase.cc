@@ -80,7 +80,7 @@ void CreateDebugUtilsMessengerEXT(
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)instance.getProcAddr(
       "vkCreateDebugUtilsMessengerEXT");
   if (func == nullptr)
-    throw std::runtime_error("Can't locate vkCreateDebugUtilsMessengerEXT");
+    RUNTIME_ERROR("can't locate vkCreateDebugUtilsMessengerEXT");
   VkCheck(static_cast<vk::Result>(func(
               (VkInstance)instance,
               reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(
@@ -137,7 +137,7 @@ ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
       ERROR("%s", kPcallbackData->pMessage);
       break;
     default:
-      ABORT(1, "%s", kPcallbackData->pMessage);
+      RUNTIME_ERROR("%s", kPcallbackData->pMessage);
   }
   return VK_FALSE;
 }
@@ -199,7 +199,7 @@ void vkBase::ChoosePhysicalDevice() {
   std::vector<vk::PhysicalDevice> physical_devices =
       instance_.enumeratePhysicalDevices();
   if (physical_devices.size() == 0) {
-    throw std::runtime_error("EnumeratePhysicalDevices returns 0 devices.");
+    RUNTIME_ERROR("enumeratePhysicalDevices returns 0 devices.");
   }
 
   auto isSuitable = [&physical_devices](vk::MemoryPropertyFlags flags) -> int {
@@ -370,7 +370,8 @@ uint32_t vkBase::GetMemoryType(uint32_t bits,
     }
     bits >>= 1;
   }
-  throw std::runtime_error("Could not find a matching memory type");
+  RUNTIME_ERROR("could not find a matching memory type");
+  return 0;
 }
 
 }  // namespace vkbench

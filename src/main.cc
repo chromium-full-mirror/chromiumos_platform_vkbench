@@ -105,7 +105,12 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   score = test->FormatMeasurement(score);
   LOG("@RESULT: %46s = %10.2f %-15s", test->Name(), score, test->Unit());
   try {
-    test->SaveImage(g_out_dir.Append(FilePath(test->Name())));
+    char file_name[1024];
+    sprintf(file_name, "%s.png", test->Name());
+    FilePath file_path = g_out_dir.Append(FilePath(file_name));
+
+    vkbench::Image image = test->GetImage();
+    image.Save(file_path);
   } catch (std::runtime_error err) {
     DEBUG("Get runtime_error while SaveImage: %s.", err.what());
   }

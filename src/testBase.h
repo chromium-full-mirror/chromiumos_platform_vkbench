@@ -9,8 +9,8 @@
 #include <vulkan/vulkan.hpp>
 
 #include "filepath.h"
-#include "vkBase.h"
 #include "utils.h"
+#include "vkBase.h"
 
 namespace vkbench {
 class testBase {
@@ -25,10 +25,8 @@ class testBase {
   // Given time elapse per iteration, format it into meaningful numbers.
   virtual double FormatMeasurement(double time) { return time; }
 
-  // SaveImage saves the rendered image to file_name.
-  virtual void SaveImage(FilePath file_path) const {
-    throw std::runtime_error("Not Implemented!");
-  };
+  // Image returns the rendered image.
+  virtual Image GetImage() const { return vkbench::Image(); };
 
   // Test related resources allocation. The resources allocated here would be
   // shared by all Run iterations. Time spent here will not be recorded.

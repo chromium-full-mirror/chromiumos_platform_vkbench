@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <png.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -16,8 +17,112 @@
 
 extern FilePath g_spirv_dir;
 
-const std::string kTemperatureScript =
-    "/usr/local/autotest/bin/temperature.py --maximum";
+void vkbench::Image::Save(FilePath file_path) {
+  if (data_ == nullptr) {
+    DEBUG("No data to save to %s", file_path.c_str());
+    return;
+  }
+  std::string ext = "";
+
+  std::string::size_type last_dot =
+      file_path.value().find_last_of(".", std::string::npos);
+  if (last_dot == std::string::npos) {
+    RUNTIME_ERROR("No image extension found for file: %s", file_path.c_str());
+  }
+  ext = file_path.value().substr(last_dot + 1);
+
+  if (ext == "png") {
+    savePNG(file_path);
+  } else if (ext == "ppm") {
+    savePPM(file_path);
+  } else {
+    RUNTIME_ERROR("Unknown extension: %s", ext.c_str());
+  }
+  DEBUG("Image saved to %s", file_path.c_str());
+  // Try to flush saved image to disk such that more data survives a hard crash.
+  system("/bin/sync");
+}
+
+// savePPM saves data into file_path in PPM format. It assumes data is in
+// R8G8B8A8 format.
+void vkbench::Image::savePPM(FilePath file_path) {
+  FilePath directory = file_path.DirName();
+  CreateDirectory(directory);
+
+  std::ofstream file(file_path.value(), std::ios::binary | std::ios::out);
+  DEFER(file.close());
+
+  const unsigned char* row_ptr = data_ + resource_layout_.offset;
+  file << "P6\n"
+       << size_.width << "\n"
+       << size_.height << "\n"
+       << 255 << std::endl;
+  for (uint32_t y = 0; y < size_.height; y++) {
+    unsigned int* row = (unsigned int*)row_ptr;
+    for (uint32_t x = 0; x < size_.width; x++) {
+      file.write((char*)row, 3);
+      row++;
+    }
+    row_ptr += resource_layout_.rowPitch;
+  }
+}
+
+// savePNG saves data into file_path in PNG format. It assumes data is in
+// R8G8B8A8 format.
+void vkbench::Image::savePNG(FilePath file_path) {
+  FilePath directory = file_path.DirName();
+  CreateDirectory(directory);
+
+  /* create file */
+  FILE* file = fopen(file_path.c_str(), "wb");
+  if (!file)
+    RUNTIME_ERROR("File %s couldn't be opened for writing", file_path.c_str());
+  DEFER(fclose(file));
+
+  png_bytep* row_pointers = new png_bytep[sizeof(png_bytep) * size_.height];
+  unsigned char* row_ptr = data_ + resource_layout_.offset;
+  for (int y = size_.height - 1; y >= 0; y--) {
+    row_pointers[y] = new png_byte[4 * size_.width];
+    memcpy(row_pointers[y], row_ptr, 4 * size_.width);
+    row_ptr += resource_layout_.rowPitch;
+  }
+
+  /* initialize stuff */
+  png_structp png_ptr =
+      png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  if (!png_ptr)
+    RUNTIME_ERROR("png_create_write_struct failed");
+  png_infop info_ptr = png_create_info_struct(png_ptr);
+  if (!info_ptr)
+    RUNTIME_ERROR("png_create_info_struct failed");
+  if (setjmp(png_jmpbuf(png_ptr)))
+    RUNTIME_ERROR("error during png_init_io");
+  png_init_io(png_ptr, file);
+
+  /* write header */
+  if (setjmp(png_jmpbuf(png_ptr)))
+    RUNTIME_ERROR("error during writing png header");
+  png_byte bit_depth = 8;   // 8 bits per channel RGBA
+  png_byte color_type = 6;  // RGBA
+  png_set_IHDR(png_ptr, info_ptr, size_.width, size_.height, bit_depth,
+               color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
+               PNG_FILTER_TYPE_BASE);
+  png_write_info(png_ptr, info_ptr);
+
+  /* write bytes */
+  if (setjmp(png_jmpbuf(png_ptr)))
+    RUNTIME_ERROR("error during png_write_image");
+  png_write_image(png_ptr, row_pointers);
+
+  /* end write */
+  if (setjmp(png_jmpbuf(png_ptr)))
+    RUNTIME_ERROR("error during png_write_end");
+  png_write_end(png_ptr, NULL);
+
+  for (int y = 0; y < size_.height; y++)
+    delete row_pointers[y];
+  delete[] row_pointers;
+}
 
 void PrintDateTime() {
   time_t timer;
@@ -32,7 +137,7 @@ std::string readShaderFile(const std::string& filename) {
   FilePath file_path = g_spirv_dir.Append(FilePath(filename));
   std::ifstream file(file_path.value(), std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
-    throw std::runtime_error("Failed to open " + file_path.value());
+    RUNTIME_ERROR("Failed to open %s", file_path.c_str());
   }
   DEFER(file.close());
 
@@ -50,30 +155,6 @@ vk::ShaderModule CreateShaderModule(const vk::Device& device,
   create_info.setCodeSize(code.length());
   create_info.setPCode(reinterpret_cast<const uint32_t*>(code.c_str()));
   return device.createShaderModule(create_info);
-}
-
-// SavePPM saves data into file_path in PPM format. It assumes data is in
-// R8G8B8A8_UNORM format.
-void SavePPM(FilePath file_path,
-             const char* data,
-             uint32_t width,
-             uint32_t height,
-             vk::DeviceSize row_pitch) {
-  FilePath directory = file_path.DirName();
-  CreateDirectory(directory);
-
-  std::ofstream file(file_path.value(), std::ios::binary | std::ios::out);
-  DEFER(file.close());
-
-  file << "P6\n" << width << "\n" << height << "\n" << 255 << std::endl;
-  for (uint32_t y = 0; y < height; y++) {
-    unsigned int* row = (unsigned int*)data;
-    for (uint32_t x = 0; x < width; x++) {
-      file.write((char*)row, 3);
-      row++;
-    }
-    data += row_pitch;
-  }
 }
 
 /* Execute a shell command and return its file descriptor for reading output. */
@@ -117,17 +198,17 @@ bool IsItemInVector(const std::vector<std::string>& list,
 }
 
 bool check_file_existence(const char* file_path, struct stat* buffer) {
-    struct stat local_buf;
-    bool exist = stat(file_path, &local_buf) == 0;
-    if (buffer && exist)
-        memcpy(buffer, &local_buf, sizeof(local_buf));
-    return exist;
+  struct stat local_buf;
+  bool exist = stat(file_path, &local_buf) == 0;
+  if (buffer && exist)
+    memcpy(buffer, &local_buf, sizeof(local_buf));
+  return exist;
 }
 
 bool check_dir_existence(const char* file_path) {
-    struct stat buffer;
-    bool exist = check_file_existence(file_path, &buffer);
-    if (!exist)
-        return false;
-    return S_ISDIR(buffer.st_mode);
+  struct stat buffer;
+  bool exist = check_file_existence(file_path, &buffer);
+  if (!exist)
+    return false;
+  return S_ISDIR(buffer.st_mode);
 }

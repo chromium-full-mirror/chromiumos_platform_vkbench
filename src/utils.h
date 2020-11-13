@@ -16,11 +16,35 @@
 
 #include "filepath.h"
 
+namespace vkbench {
+class Image {
+ public:
+  Image() : data_(nullptr) {}
+  Image(const unsigned char* data,
+        const vk::Extent2D size,
+        vk::SubresourceLayout resource_layout)
+      : size_(size), resource_layout_(resource_layout) {
+    data_ = new unsigned char[resource_layout_.size];
+    memcpy(data_, data, resource_layout_.size);
+  }
+  ~Image() { delete data_; }
+
+  void Save(FilePath);
+
+ private:
+  void savePPM(FilePath);
+  void savePNG(FilePath);
+
+  unsigned char* data_;
+  vk::Extent2D size_;
+  vk::SubresourceLayout resource_layout_;
+};
+}  // namespace vkbench
+
 extern int g_verbose;
 void PrintDateTime();
 std::vector<std::string> SplitString(const std::string& kInput, char delimiter);
 std::string readShaderFile(const std::string& filename);
-void SavePPM(FilePath, const char*, uint32_t, uint32_t, vk::DeviceSize);
 vk::ShaderModule CreateShaderModule(const vk::Device& device, std::string code);
 
 inline uint64_t GetUTime() {
@@ -35,7 +59,8 @@ bool IsItemInVector(const std::vector<std::string>& list,
 bool check_file_existence(const char* file_path, struct stat* buffer = NULL);
 bool check_dir_existence(const char* file_path);
 
-inline void DbgPrintf(const char* filename,
+inline void DbgPrintf(bool should_abort,
+                      const char* filename,
                       int line,
                       FILE* fileid,
                       const char* format,
@@ -52,6 +77,8 @@ inline void DbgPrintf(const char* filename,
   }
   vfprintf(fileid, string_format, args);
   va_end(args);
+  if (should_abort)
+    throw std::runtime_error(string_format);
 }
 
 inline void VkCheck(const vk::Result& result, const char* func_str) {
@@ -70,14 +97,11 @@ inline void VkCheck(const vk::Result& result, const char* func_str) {
     }                          \
   }
 #define LOG(fmt, ...) \
-  { DbgPrintf(__FILE__, __LINE__, stdout, fmt, ##__VA_ARGS__); }
+  { DbgPrintf(false, __FILE__, __LINE__, stdout, fmt, ##__VA_ARGS__); }
 #define ERROR(fmt, ...) \
-  { DbgPrintf(__FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__); }
-#define ABORT(code, fmt, ...)  \
-  {                            \
-    ERROR(fmt, ##__VA_ARGS__); \
-    exit(code);                \
-  }
+  { DbgPrintf(false, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__); }
+#define RUNTIME_ERROR(fmt, ...) \
+  { DbgPrintf(true, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__); }
 
 // Put this in the declarations for a class to be uncopyable.
 #define DISALLOW_COPY(TypeName) TypeName(const TypeName&) = delete

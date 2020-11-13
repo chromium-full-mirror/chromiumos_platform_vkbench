@@ -22,7 +22,7 @@ class DrawSizeTest : public testBase {
   const char* Name() const override { return name_; }
   const char* Desp() const override { return desp_; }
   const char* Unit() const override { return "us"; }
-  void SaveImage(FilePath file_path) const override;
+  Image GetImage() const override;
 
  protected:
   void Initialize() override;

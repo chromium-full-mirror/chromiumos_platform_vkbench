@@ -12,7 +12,7 @@ class ClearTest : public testBase {
  public:
   ClearTest(vkBase* base) {
     vk = base;
-    clear_color_.setColor({std::array<float, 4>{0.f, 0.f, 1.f}});  // Blue
+    clear_color_.setColor({std::array<float, 4>{0.f, 0.f, 1.f, 1.f}});  // Blue
     snprintf(name_, 100, "ClearTest");
     snprintf(desp_, 1024, "Time to clear window to specific color.");
   }
@@ -24,7 +24,7 @@ class ClearTest : public testBase {
   virtual double FormatMeasurement(double time) override {
     return img_size_.width * img_size_.height / time;
   }
-  void SaveImage(FilePath file_path) const override;
+  Image GetImage() const override;
 
  protected:
   void Initialize() override;

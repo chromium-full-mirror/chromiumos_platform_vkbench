@@ -16,7 +16,7 @@ void DrawSizeTest::Initialize() {
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
   for (const auto& buffer : cmd_buffers_) {
     buffer.begin(vk::CommandBufferBeginInfo());
-    vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f});
+    vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f, 1.f});
     vk::RenderPassBeginInfo render_pass_info;
     render_pass_info.setFramebuffer(frame_buffer_)
         .setRenderPass(render_pass_)
@@ -78,10 +78,8 @@ void DrawSizeTest::CreateRenderPass() {
 }
 
 void DrawSizeTest::CreateGraphicsPipeline() {
-  std::string vert_shader_code =
-      readShaderFile("drawSizeTest.vert.spv");
-  std::string frag_shader_code =
-      readShaderFile("drawSizeTest.frag.spv");
+  std::string vert_shader_code = readShaderFile("drawSizeTest.vert.spv");
+  std::string frag_shader_code = readShaderFile("drawSizeTest.frag.spv");
   vk::Device device = vk->GetDevice();
 
   vk::ShaderModule vert_shader_module =
@@ -168,18 +166,15 @@ void DrawSizeTest::CreateFrameBuffers() {
   frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
 
-void DrawSizeTest::SaveImage(FilePath file_path) const {
+Image DrawSizeTest::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = vk->GetReadableImage(img_, img_size_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  const char* data =
-      (const char*)device.mapMemory(dest->GetMemory(), 0, VK_WHOLE_SIZE);
-  data += sub_resource_layout.offset;
-  SavePPM(file_path, data, img_size_.width, img_size_.height,
-          sub_resource_layout.rowPitch);
-  DEBUG("Saved image to %s", file_path.value().c_str());
+  const unsigned char* data = (const unsigned char*)device.mapMemory(
+      dest->GetMemory(), 0, VK_WHOLE_SIZE);
+  return Image(data, img_size_, sub_resource_layout);
 }
 
 }  // namespace vkbench
