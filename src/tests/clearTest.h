@@ -18,6 +18,10 @@ class ClearTest : public testBase {
   }
   ~ClearTest() override = default;
 
+  static std::vector<testBase*> GenTests() {
+    return std::vector<testBase*>{
+        new vkbench::ClearTest(vkBase::GetInstance())};
+  }
   const char* Name() const override { return name_; }
   const char* Desp() const override { return desp_; }
   const char* Unit() const override { return "mpixels_sec"; }

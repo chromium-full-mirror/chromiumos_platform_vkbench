@@ -102,6 +102,13 @@ void DestroyDebugUtilsMessengerEXT(vk::Instance instance,
   }
 }
 
+vkBase* vkBase::singleton_ = nullptr;
+vkBase* vkBase::GetInstance() {
+  if (singleton_ == nullptr)
+    singleton_ = new vkBase();
+  return singleton_;
+}
+
 uint32_t ChooseGFXQueueFamilies(const vk::PhysicalDevice& physical_device) {
   uint32_t gfx_queue_idx = UINT32_MAX;
   std::vector<vk::QueueFamilyProperties> props =

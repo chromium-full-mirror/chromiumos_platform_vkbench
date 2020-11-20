@@ -19,6 +19,15 @@ class DrawSizeTest : public testBase {
   }
   ~DrawSizeTest() override = default;
 
+  static std::vector<testBase*> GenTests() {
+    return std::vector<testBase*>{
+        new vkbench::DrawSizeTest(16, vkBase::GetInstance()),
+        new vkbench::DrawSizeTest(64, vkBase::GetInstance()),
+        new vkbench::DrawSizeTest(128, vkBase::GetInstance()),
+        new vkbench::DrawSizeTest(512, vkBase::GetInstance()),
+        new vkbench::DrawSizeTest(1024, vkBase::GetInstance()),
+    };
+  }
   const char* Name() const override { return name_; }
   const char* Desp() const override { return desp_; }
   const char* Unit() const override { return "us"; }

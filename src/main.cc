@@ -187,33 +187,25 @@ bool ParseArgv(int argc,
 }
 
 int main(int argc, char* argv[]) {
-  vkbench::vkBase simpleVulkan;
   // all_tests list all the available tests.
-  std::vector<vkbench::testBase*> all_tests = {
-      new vkbench::SubmitTest(10, &simpleVulkan),
-      new vkbench::SubmitTest(100, &simpleVulkan),
-      new vkbench::SubmitTest(1000, &simpleVulkan),
-      new vkbench::SubmitTest(10000, &simpleVulkan),
-      new vkbench::SubmitTest(100000, &simpleVulkan),
-      new vkbench::DrawSizeTest(16, &simpleVulkan),
-      new vkbench::DrawSizeTest(64, &simpleVulkan),
-      new vkbench::DrawSizeTest(128, &simpleVulkan),
-      new vkbench::DrawSizeTest(512, &simpleVulkan),
-      new vkbench::DrawSizeTest(1024, &simpleVulkan),
-      new vkbench::ClearTest(&simpleVulkan),
+  std::vector<vkbench::testBase*> all_tests;
+  auto appendList = [](std::vector<vkbench::testBase*>& a,
+                       const std::vector<vkbench::testBase*>& b) {
+    a.insert(a.end(), b.begin(), b.end());
   };
+  appendList(all_tests, vkbench::SubmitTest::GenTests());
+  appendList(all_tests, vkbench::DrawSizeTest::GenTests());
+  appendList(all_tests, vkbench::ClearTest::GenTests());
+
+  if (!ParseArgv(argc, argv, all_tests)) {
+    return 0;
+  }
 
   // Sort to bundle tests using same vulkan instance together.
   std::stable_sort(all_tests.begin(), all_tests.end(),
                    [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
                      return a->vk < b->vk;
                    });
-
-  if (!ParseArgv(argc, argv, all_tests)) {
-    return 0;
-  }
-
-  std::map<const char*, int> failed_test;
   LOG("@TEST_BEGIN")
   PrintDateTime();
   for (auto i = 0; i < all_tests.size(); i++) {
@@ -226,8 +218,7 @@ int main(int argc, char* argv[]) {
         if (!g_hasty)
           test->vk->Destroy();
       } catch (const std::runtime_error error) {
-        failed_test[test->Name()] += 1;
-        LOG("Runtime Error: %s", error.what());
+        LOG("@RESULT: %46s = ERROR[%s]", test->Name(), error.what());
       }
     }
 
@@ -239,12 +230,7 @@ int main(int argc, char* argv[]) {
     }
   }
   PrintDateTime();
-  LOG("@TEST_END")
-
-  for (auto& keyval : failed_test) {
-    LOG("%s failed %d times.", keyval.first, keyval.second)
-  }
-
+  LOG("@TEST_END");
   for (auto& test : all_tests) {
     delete test;
   }

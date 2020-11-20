@@ -34,6 +34,8 @@ class vkImage {
 class vkBase {
  public:
   virtual ~vkBase() = default;
+  static vkBase* GetInstance();
+
   virtual void Initialize();
   virtual bool IsInitialized() const;
   virtual void Destroy();
@@ -51,6 +53,7 @@ class vkBase {
   // Helper function
   uint32_t GetMemoryType(uint32_t bits, vk::MemoryPropertyFlags properties);
   vkImage* GetReadableImage(vkImage* src, vk::Extent2D size, vk::Format format);
+  DISALLOW_COPY_AND_ASSIGN(vkBase);
 
  protected:
   // Vulkan general method.
@@ -76,6 +79,10 @@ class vkBase {
 
   vk::SurfaceKHR surface_;
   bool initialized_ = false;
+
+ private:
+  vkBase() {}
+  static vkBase* singleton_;
 };
 
 }  // namespace vkbench

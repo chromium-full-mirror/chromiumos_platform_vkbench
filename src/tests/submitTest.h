@@ -19,6 +19,16 @@ class SubmitTest : public testBase {
   }
   ~SubmitTest() override = default;
 
+  static std::vector<testBase*> GenTests() {
+    return std::vector<testBase*>{
+        new vkbench::SubmitTest(16, vkBase::GetInstance()),
+        new vkbench::SubmitTest(64, vkBase::GetInstance()),
+        new vkbench::SubmitTest(256, vkBase::GetInstance()),
+        new vkbench::SubmitTest(1024, vkBase::GetInstance()),
+        new vkbench::SubmitTest(4096, vkBase::GetInstance()),
+        new vkbench::SubmitTest(16384, vkBase::GetInstance()),
+    };
+  }
   const char* Name() const override { return name_; }
   const char* Desp() const override { return desp_; }
   const char* Unit() const override { return "us"; }
