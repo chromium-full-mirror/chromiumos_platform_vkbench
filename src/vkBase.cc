@@ -7,7 +7,6 @@
 #include <limits>
 #include <vulkan/vulkan.hpp>
 
-#include "constant.h"
 #include "utils.h"
 #include "vkBase.h"
 

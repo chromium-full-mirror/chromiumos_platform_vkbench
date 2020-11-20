@@ -5,7 +5,7 @@
 #ifndef VKBENCH_SUBMITTEST_H
 #define VKBENCH_SUBMITTEST_H
 
-#include "testBase.h"
+#include "../testBase.h"
 
 namespace vkbench {
 class SubmitTest : public testBase {

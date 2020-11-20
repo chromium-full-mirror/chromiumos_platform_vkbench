@@ -9,11 +9,10 @@
 #include <map>
 #include <vector>
 
-#include "clearTest.h"
-#include "constant.h"
-#include "drawSizeTest.h"
 #include "filepath.h"
-#include "submitTest.h"
+#include "tests/clearTest.h"
+#include "tests/drawSizeTest.h"
+#include "tests/submitTest.h"
 #include "utils.h"
 
 // g_list determines should we show the test list.
@@ -60,13 +59,8 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   }
   DEFER(test->Cleanup());
 
-  try {
-    for (int i = 0; i < iteration; i++) {
-      test->Run();
-    }
-  } catch (const vk::SystemError& err) {
-    LOG("TestRun failed: %s", err.what());
-    throw TEST_FAIL;
+  for (int i = 0; i < iteration; i++) {
+    test->Run();
   }
   return GetUTime() - start;
 }
@@ -231,17 +225,6 @@ int main(int argc, char* argv[]) {
         Run(test, 1000000);
         if (!g_hasty)
           test->vk->Destroy();
-      } catch (const ERROR_TYPE& type) {
-        switch (type) {
-          case TEST_PASS:
-            break;
-          case TEST_FAIL:
-            failed_test[test->Name()] += 1;
-            break;
-          default:
-            ERROR("Unimplemented error type");
-            throw;
-        }
       } catch (const std::runtime_error error) {
         failed_test[test->Name()] += 1;
         LOG("Runtime Error: %s", error.what());

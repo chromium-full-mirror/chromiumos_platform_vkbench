@@ -5,7 +5,7 @@
 #ifndef VKBENCH_DRAWSIZETEST_H
 #define VKBENCH_DRAWSIZETEST_H
 
-#include "testBase.h"
+#include "../testBase.h"
 
 namespace vkbench {
 class DrawSizeTest : public testBase {

@@ -5,7 +5,7 @@
 #ifndef VKBENCH_CLEARTEST_H
 #define VKBENCH_CLEARTEST_H
 
-#include "testBase.h"
+#include "../testBase.h"
 
 namespace vkbench {
 class ClearTest : public testBase {

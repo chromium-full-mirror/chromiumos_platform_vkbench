@@ -33,8 +33,9 @@ foreach(GLSL ${GLSL_SOURCE_FILES})
 endforeach(GLSL)
 add_custom_target(Shaders DEPENDS ${SPIRV_BINARY_FILES})
 
+file(GLOB_RECURSE TEST_FILES "src/tests/*.cc")
 file(GLOB_RECURSE SRC_FILES "src/*.cc")
-add_executable(vkbench ${SRC_FILES})
+add_executable(vkbench ${SRC_FILES} ${SRC_FILES})
 add_dependencies(vkbench Shaders)
 
 
