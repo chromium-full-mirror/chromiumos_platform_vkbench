@@ -12,7 +12,7 @@ class SubmitTest : public testBase {
  public:
   SubmitTest(uint64_t submitCnt, vkBase* base) {
     vk = base;
-    sprintf(name_, "SubmitTest@%lu", submitCnt);
+    sprintf(name_, "SubmitTest_%lu", submitCnt);
     sprintf(desp_, "Times the time used when submitting %lu empty calls.",
             submitCnt);
     smt_infos_.resize(submitCnt);

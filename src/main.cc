@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iterator>
 #include <map>
+#include <regex>
 #include <vector>
 
 #include "filepath.h"
@@ -120,6 +121,9 @@ Usage: vkbench [OPTIONS]
   --verbose              Show verbose messages.
   --vlayer               Enable vulkan verification layer.
   --hasty                Enable hasty mode.
+                         In this mode, tests will try to reuse existing vulkan
+                         instance if possible. It also runs a reduced number
+                         of tests and checks the validity of each tests.
   --spirv_dir            Path to SPIRV code for test.(default: shaders/)
   --out_dir              Path to the output directory.),")
 }
@@ -165,18 +169,17 @@ bool ParseArgv(int argc,
     return false;
   }
 
-  all_tests.erase(
-      remove_if(all_tests.begin(), all_tests.end(),
-                [enabled_tests, disabled_tests](const vkbench::testBase* test) {
-                  bool should_run = enabled_tests.empty() ||
-                                    prefixFind(enabled_tests, test->Name());
-                  should_run &= !prefixFind(disabled_tests, test->Name());
-                  if (!should_run)
-                    delete test;
-                  return !should_run;
-                }),
-      all_tests.end());
-
+  auto filterTests = [enabled_tests,
+                      disabled_tests](const vkbench::testBase* test) {
+    bool should_run =
+        enabled_tests.empty() || prefixFind(enabled_tests, test->Name());
+    should_run &= !prefixFind(disabled_tests, test->Name());
+    if (!should_run)
+      delete test;
+    return !should_run;
+  };
+  all_tests.erase(remove_if(all_tests.begin(), all_tests.end(), filterTests),
+                  all_tests.end());
   if (g_list) {
     for (const auto& test : all_tests) {
       LOG("%s: %s", test->Name(), test->Desp())
@@ -199,6 +202,16 @@ int main(int argc, char* argv[]) {
 
   if (!ParseArgv(argc, argv, all_tests)) {
     return 0;
+  }
+
+  // Sanity check as certain characters is not allowed by dashboard.
+  auto assertValidCharater = [](const char* str) {
+    if (!regex_match(std::string(str), std::regex(R"(\w+)")))
+      RUNTIME_ERROR("%s contains invalid character", str);
+  };
+  for (auto test : all_tests) {
+    assertValidCharater(test->Name());
+    assertValidCharater(test->Unit());
   }
 
   // Sort to bundle tests using same vulkan instance together.

@@ -75,10 +75,12 @@ inline void DbgPrintf(bool should_abort,
   } else {
     sprintf(string_format, "%s\n", format);
   }
-  vfprintf(fileid, string_format, args);
+  char result[strlen(string_format) + 1024];
+  vsprintf(result, string_format, args);
   va_end(args);
+  fprintf(fileid, result);
   if (should_abort)
-    throw std::runtime_error(string_format);
+    throw std::runtime_error(result);
 }
 
 inline void VkCheck(const vk::Result& result, const char* func_str) {
