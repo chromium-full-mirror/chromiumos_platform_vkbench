@@ -139,9 +139,8 @@ bool prefixFind(std::vector<std::string> list, std::string name) {
 
 bool ParseArgv(int argc,
                char** argv,
-               std::vector<vkbench::testBase*>& all_tests) {
-  std::vector<std::string> enabled_tests;
-  std::vector<std::string> disabled_tests;
+               std::vector<std::string>& enabled_tests,
+               std::vector<std::string>& disabled_tests) {
   int c;
   int option_index = 0;
   while ((c = getopt_long(argc, argv, "i:t:b:", kLongOptions, &option_index)) !=
@@ -168,6 +167,25 @@ bool ParseArgv(int argc,
       ERROR("%s ", argv[optind++])
     return false;
   }
+  return true;
+}
+
+std::vector<vkbench::testBase*> genTests(
+    std::vector<std::string>& enabled_tests,
+    std::vector<std::string>& disabled_tests) {
+  std::vector<vkbench::testBase*> all_tests;
+  auto appendList = [](std::vector<vkbench::testBase*>& a,
+                       const std::vector<vkbench::testBase*>& b) {
+    if (b.size() == 0)
+      return;
+    if (g_hasty)
+      a.push_back(b.front());
+    else
+      a.insert(a.end(), b.begin(), b.end());
+  };
+  appendList(all_tests, vkbench::SubmitTest::GenTests());
+  appendList(all_tests, vkbench::DrawSizeTest::GenTests());
+  appendList(all_tests, vkbench::ClearTest::GenTests());
 
   auto filterTests = [enabled_tests,
                       disabled_tests](const vkbench::testBase* test) {
@@ -180,29 +198,11 @@ bool ParseArgv(int argc,
   };
   all_tests.erase(remove_if(all_tests.begin(), all_tests.end(), filterTests),
                   all_tests.end());
-  if (g_list) {
-    for (const auto& test : all_tests) {
-      LOG("%s: %s", test->Name(), test->Desp())
-    }
-    return false;
-  }
-  return true;
-}
-
-int main(int argc, char* argv[]) {
-  // all_tests list all the available tests.
-  std::vector<vkbench::testBase*> all_tests;
-  auto appendList = [](std::vector<vkbench::testBase*>& a,
-                       const std::vector<vkbench::testBase*>& b) {
-    a.insert(a.end(), b.begin(), b.end());
-  };
-  appendList(all_tests, vkbench::SubmitTest::GenTests());
-  appendList(all_tests, vkbench::DrawSizeTest::GenTests());
-  appendList(all_tests, vkbench::ClearTest::GenTests());
-
-  if (!ParseArgv(argc, argv, all_tests)) {
-    return 0;
-  }
+  // Sort to bundle tests using same vulkan instance together.
+  std::stable_sort(all_tests.begin(), all_tests.end(),
+                   [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
+                     return a->vk < b->vk;
+                   });
 
   // Sanity check as certain characters is not allowed by dashboard.
   auto assertValidCharater = [](const char* str) {
@@ -213,12 +213,23 @@ int main(int argc, char* argv[]) {
     assertValidCharater(test->Name());
     assertValidCharater(test->Unit());
   }
+  return all_tests;
+}
 
-  // Sort to bundle tests using same vulkan instance together.
-  std::stable_sort(all_tests.begin(), all_tests.end(),
-                   [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
-                     return a->vk < b->vk;
-                   });
+int main(int argc, char* argv[]) {
+  std::vector<std::string> enabled_tests, disabled_tests;
+  if (!ParseArgv(argc, argv, enabled_tests, disabled_tests))
+    return -1;
+  std::vector<vkbench::testBase*> all_tests =
+      genTests(enabled_tests, disabled_tests);
+
+  if (g_list) {
+    for (const auto& test : all_tests) {
+      LOG("%s: %s", test->Name(), test->Desp())
+    }
+    return false;
+  }
+
   LOG("@TEST_BEGIN")
   PrintDateTime();
   for (auto i = 0; i < all_tests.size(); i++) {
