@@ -13,8 +13,7 @@
 #include "./utils.h"
 #include "tests/clearTest.h"
 #include "tests/drawSizeTest.h"
-#include "tests/submitTest.h"
-#include "utils.h"
+#include "tests/submit.h"
 
 // g_list determines should we show the test list.
 int g_list = false;
@@ -183,7 +182,7 @@ std::vector<vkbench::testBase*> genTests(
     else
       a.insert(a.end(), b.begin(), b.end());
   };
-  appendList(all_tests, vkbench::SubmitTest::GenTests());
+  appendList(all_tests, vkbench::submit::GenTests());
   appendList(all_tests, vkbench::DrawSizeTest::GenTests());
   appendList(all_tests, vkbench::ClearTest::GenTests());
 
