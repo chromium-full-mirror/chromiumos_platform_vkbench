@@ -2,18 +2,20 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "filepath.h"
-#include <string.h>
+#include "./filepath.h"
+#include "./utils.h"
+
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <vector>
-#include "utils.h"
 
-inline void AppendToString(std::string* target, std::string& source) {
+#include <string>
+#include <vector>
+
+inline void AppendToString(std::string* target, const std::string& source) {
   target->append(source);
 }
 
-FilePath FilePath::DirName() {
+FilePath FilePath::DirName() const {
   FilePath new_path(path_);
 
   std::string::size_type last_separator =
@@ -50,7 +52,7 @@ const char* FilePath::c_str() const {
   return this->path_.c_str();
 }
 
-bool FilePath::IsSeparator(char character) {
+bool FilePath::IsSeparator(char character) const {
   for (size_t i = 0; i < strlen(kSeparators) - 1; ++i) {
     if (character == kSeparators[i]) {
       return true;
@@ -139,7 +141,7 @@ std::string::size_type FindDriveLetter(std::string path) {
   return std::string::npos;
 }
 
-bool CreateDirectory(FilePath& full_path) {
+bool CreateDirectory(const FilePath& full_path) {
   std::vector<FilePath> subpaths;
 
   // Collect a list of all parent directories.

@@ -2,19 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef __UTILS_H__
-#define __UTILS_H__
+#ifndef SRC_UTILS_H_
+#define SRC_UTILS_H_
 
+#include <fmt/format.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 #include <vulkan/vulkan.hpp>
 
-#include "filepath.h"
+#include "./filepath.h"
 
 namespace vkbench {
 class Image {
@@ -67,29 +70,17 @@ inline void DbgPrintf(bool should_abort,
                       ...) {
   va_list args;
   va_start(args, format);
-  char string_format[strlen(format) + 1024];
-  char debug_header[1024] = "\0";
+  std::string debug_header, string_format;
   if (g_verbose) {
-    sprintf(debug_header, "[%s:%d]", filename, line);
-    sprintf(string_format, "%30s %s\n", debug_header, format);
+    debug_header = fmt::format("[{}:{}]", filename, line);
+    string_format = fmt::format("{:>30} {}\n", debug_header, format);
   } else {
-    sprintf(string_format, "%s\n", format);
+    string_format = fmt::format("{}\n", format);
   }
-  char result[strlen(string_format) + 1024];
-  vsprintf(result, string_format, args);
+  vfprintf(fileid, string_format.c_str(), args);
   va_end(args);
-  fprintf(fileid, result);
   if (should_abort)
-    throw std::runtime_error(result);
-}
-
-inline void VkCheck(const vk::Result& result, const char* func_str) {
-  if (result != vk::Result::eSuccess) {
-    char msg[1024];
-    snprintf(msg, 1024, "%s failed: %s", func_str,
-             vk::to_string(result).c_str());
-    throw std::runtime_error(msg);
-  }
+    throw std::runtime_error("");
 }
 
 #define DEBUG(fmt, ...)        \
@@ -146,4 +137,4 @@ class ScopeGuard {
 #define CONCAT(a, b) CONCAT_(a, b)
 #define DEFER(fn) ScopeGuard CONCAT(__defer__, __LINE__) = [&]() { fn; }
 
-#endif
+#endif  // SRC_UTILS_H_

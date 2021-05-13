@@ -7,13 +7,12 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
-#include <chrono>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "utils.h"
+#include "./utils.h"
 
 extern FilePath g_spirv_dir;
 
@@ -60,7 +59,7 @@ void vkbench::Image::savePPM(FilePath file_path) {
   for (uint32_t y = 0; y < size_.height; y++) {
     unsigned int* row = (unsigned int*)row_ptr;
     for (uint32_t x = 0; x < size_.width; x++) {
-      file.write((char*)row, 3);
+      file.write(reinterpret_cast<char*>(row), 3);
       row++;
     }
     row_ptr += resource_layout_.rowPitch;
@@ -128,8 +127,9 @@ void PrintDateTime() {
   time_t timer;
   char buffer[26];
   time(&timer);
-  struct tm* tm_info = localtime(&timer);
-  strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+  struct tm tm_info;
+  localtime_r(&timer, &tm_info);
+  strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", &tm_info);
   LOG("# DateTime: %s", buffer)
 }
 
@@ -170,7 +170,7 @@ bool ExecuteCommand(const std::string& kCommand,
 
   if (result) {
     fseek(fd, 0, SEEK_END);
-    long size = ftell(fd);
+    int64_t size = ftell(fd);
     fseek(fd, 0, SEEK_SET);
     fread(&result[0], sizeof(char), size, fd);
   }

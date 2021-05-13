@@ -7,10 +7,10 @@
 #include <algorithm>
 #include <iterator>
 #include <map>
-#include <regex>
 #include <vector>
 
-#include "filepath.h"
+#include "./filepath.h"
+#include "./utils.h"
 #include "tests/clearTest.h"
 #include "tests/drawSizeTest.h"
 #include "tests/submitTest.h"
@@ -33,7 +33,7 @@ FilePath g_spirv_dir = FilePath("shaders");
 FilePath g_out_dir = FilePath("");
 
 // kLongOptions defines the options for argument options.
-const static struct option kLongOptions[] = {
+static const struct option kLongOptions[] = {
     {"iterations", required_argument, nullptr, 'i'},
     {"tests", required_argument, nullptr, 't'},
     {"blacklist", required_argument, nullptr, 'b'},
@@ -101,7 +101,7 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   LOG("@RESULT: %46s = %10.2f %-15s", test->Name(), score, test->Unit());
   try {
     char file_name[1024];
-    sprintf(file_name, "%s.png", test->Name());
+    snprintf(file_name, sizeof(file_name), "%s.png", test->Name());
     FilePath file_path = g_out_dir.Append(FilePath(file_name));
 
     vkbench::Image image = test->GetImage();
@@ -139,8 +139,8 @@ bool prefixFind(std::vector<std::string> list, std::string name) {
 
 bool ParseArgv(int argc,
                char** argv,
-               std::vector<std::string>& enabled_tests,
-               std::vector<std::string>& disabled_tests) {
+               std::vector<std::string>* enabled_tests,
+               std::vector<std::string>* disabled_tests) {
   int c;
   int option_index = 0;
   while ((c = getopt_long(argc, argv, "i:t:b:", kLongOptions, &option_index)) !=
@@ -148,9 +148,9 @@ bool ParseArgv(int argc,
     if (c == 'i') {
       g_iteration = atoi(optarg);
     } else if (c == 't') {
-      enabled_tests = SplitString(std::string(optarg), ':');
+      *enabled_tests = SplitString(std::string(optarg), ':');
     } else if (c == 'b') {
-      disabled_tests = SplitString(std::string(optarg), ':');
+      *disabled_tests = SplitString(std::string(optarg), ':');
     } else if (c == 's') {
       g_spirv_dir = FilePath(optarg);
     } else if (c == 'o') {
@@ -171,8 +171,8 @@ bool ParseArgv(int argc,
 }
 
 std::vector<vkbench::testBase*> genTests(
-    std::vector<std::string>& enabled_tests,
-    std::vector<std::string>& disabled_tests) {
+    std::vector<std::string> enabled_tests,
+    std::vector<std::string> disabled_tests) {
   std::vector<vkbench::testBase*> all_tests;
   auto appendList = [](std::vector<vkbench::testBase*>& a,
                        const std::vector<vkbench::testBase*>& b) {
@@ -203,22 +203,12 @@ std::vector<vkbench::testBase*> genTests(
                    [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
                      return a->vk < b->vk;
                    });
-
-  // Sanity check as certain characters is not allowed by dashboard.
-  auto assertValidCharater = [](const char* str) {
-    if (!regex_match(std::string(str), std::regex(R"(\w+)")))
-      RUNTIME_ERROR("%s contains invalid character", str);
-  };
-  for (auto test : all_tests) {
-    assertValidCharater(test->Name());
-    assertValidCharater(test->Unit());
-  }
   return all_tests;
 }
 
 int main(int argc, char* argv[]) {
   std::vector<std::string> enabled_tests, disabled_tests;
-  if (!ParseArgv(argc, argv, enabled_tests, disabled_tests))
+  if (!ParseArgv(argc, argv, &enabled_tests, &disabled_tests))
     return -1;
   std::vector<vkbench::testBase*> all_tests =
       genTests(enabled_tests, disabled_tests);

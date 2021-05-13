@@ -2,23 +2,24 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef BENCH_GL_FILES_PATH_H_
-#define BENCH_GL_FILES_PATH_H_
+#ifndef SRC_FILEPATH_H_
+#define SRC_FILEPATH_H_
 
 #include <iostream>
+#include <string>
 
 class FilePath {
  public:
   FilePath() { this->path_ = std::string(""); }
   FilePath(const FilePath& that) { this->path_ = that.path_; }
-  FilePath(std::string path) { this->path_ = path; }
-  FilePath(const char* path) { this->path_ = path; }
+  explicit FilePath(std::string path) { this->path_ = path; }
+  explicit FilePath(const char* path) { this->path_ = path; }
   ~FilePath() = default;
 
-  FilePath DirName();
+  FilePath DirName() const;
   const std::string& value() const;
   const char* c_str() const;
-  bool IsSeparator(char character);
+  bool IsSeparator(char character) const;
   FilePath Append(const FilePath& path);
   void StripTrailingSeparatorsInternal();
 
@@ -28,7 +29,7 @@ class FilePath {
   char kSeparators[2] = "/";
   char kCurrentDirectory[2] = ".";
 };
-bool CreateDirectory(FilePath&);
+bool CreateDirectory(const FilePath&);
 std::string::size_type FindDriveLetter(std::string path);
 
-#endif  // BENCH_GL_FILES_PATH_H_
+#endif  // SRC_FILEPATH_H_

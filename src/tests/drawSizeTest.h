@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef VKBENCH_DRAWSIZETEST_H
-#define VKBENCH_DRAWSIZETEST_H
+#ifndef SRC_TESTS_DRAW_H_
+#define SRC_TESTS_DRAW_H_
 
 #include "../testBase.h"
 
@@ -60,4 +60,4 @@ class DrawSizeTest : public testBase {
   DISALLOW_COPY_AND_ASSIGN(DrawSizeTest);
 };
 }  // namespace vkbench
-#endif  // VKBENCH_DRAWSIZETEST_H
+#endif  // SRC_TESTS_DRAW_H_

@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <vulkan/vulkan.hpp>
+
 #include <unistd.h>
 #include <algorithm>
 #include <limits>
-#include <vulkan/vulkan.hpp>
 
-#include "utils.h"
-#include "vkBase.h"
+#include "./utils.h"
+#include "./vkBase.h"
 
 extern int g_vlayer;
 
@@ -80,13 +81,15 @@ void CreateDebugUtilsMessengerEXT(
       "vkCreateDebugUtilsMessengerEXT");
   if (func == nullptr)
     RUNTIME_ERROR("can't locate vkCreateDebugUtilsMessengerEXT");
-  VkCheck(static_cast<vk::Result>(func(
-              (VkInstance)instance,
-              reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(
-                  kPcreateInfo),
-              reinterpret_cast<const VkAllocationCallbacks*>(kPallocator),
-              reinterpret_cast<VkDebugUtilsMessengerEXT*>(pdebug_messengeer))),
-          "vkCreateDebugUtilsMessengerEXT");
+  vk::Result result = static_cast<vk::Result>(func(
+      (VkInstance)instance,
+      reinterpret_cast<const VkDebugUtilsMessengerCreateInfoEXT*>(kPcreateInfo),
+      reinterpret_cast<const VkAllocationCallbacks*>(kPallocator),
+      reinterpret_cast<VkDebugUtilsMessengerEXT*>(pdebug_messengeer)));
+  if (result != vk::Result::eSuccess) {
+    RUNTIME_ERROR("vkCreateDebugUtilsMessengerEXT failed: %s",
+                  vk::to_string(result).c_str());
+  }
 }
 
 void DestroyDebugUtilsMessengerEXT(vk::Instance instance,

@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef __VKBENCH_TESTBASE_H__
-#define __VKBENCH_TESTBASE_H__
+#ifndef SRC_TESTBASE_H_
+#define SRC_TESTBASE_H_
+
+#include "./filepath.h"
+#include "./utils.h"
+#include "./vkBase.h"
 
 #include <vector>
 #include <vulkan/vulkan.hpp>
-
-#include "filepath.h"
-#include "utils.h"
-#include "vkBase.h"
 
 namespace vkbench {
 class testBase {
@@ -26,7 +26,7 @@ class testBase {
   virtual double FormatMeasurement(double time) { return time; }
 
   // Image returns the rendered image.
-  virtual Image GetImage() const { return vkbench::Image(); };
+  virtual Image GetImage() const { return vkbench::Image(); }
 
   // Test related resources allocation. The resources allocated here would be
   // shared by all Run iterations. Time spent here will not be recorded.
@@ -37,7 +37,7 @@ class testBase {
   // Test body. Time spent will be recorded.
   virtual void Run() = 0;
   // Test cleanup after looping Run. Time spent here will be recorded.
-  virtual void Cleanup(){};
+  virtual void Cleanup() {}
   // Free and Destroy any resources allocated during Initialize. Time
   // spent here will not be recorded.
   virtual void Destroy() = 0;
@@ -46,4 +46,4 @@ class testBase {
 };
 
 }  // namespace vkbench
-#endif
+#endif  // SRC_TESTBASE_H_

@@ -6,12 +6,14 @@ set(CMAKE_BUILD_TYPE Debug)
 
 find_package(Vulkan REQUIRED)
 find_package(PNG REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(.)
 include_directories(${Vulkan_INCLUDE_DIRS})
 include_directories(${PNG_INCLUDE_DIRS})
 link_libraries(${Vulkan_LIBRARIES})
 link_libraries(${PNG_LIBRARIES})
+link_libraries(fmt::fmt)
 
 # Suppress deprecated warning
 set(CMAKE_CXX_FLAGS "-Wno-deprecated-declarations")

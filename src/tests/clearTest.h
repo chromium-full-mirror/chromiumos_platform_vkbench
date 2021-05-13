@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef VKBENCH_CLEARTEST_H
-#define VKBENCH_CLEARTEST_H
+#ifndef SRC_TESTS_CLEAR_H_
+#define SRC_TESTS_CLEAR_H_
 
 #include "../testBase.h"
 
@@ -25,7 +25,7 @@ class ClearTest : public testBase {
   const char* Name() const override { return name_; }
   const char* Desp() const override { return desp_; }
   const char* Unit() const override { return "mpixels_sec"; }
-  virtual double FormatMeasurement(double time) override {
+  double FormatMeasurement(double time) override {
     return img_size_.width * img_size_.height / time;
   }
   Image GetImage() const override;
@@ -55,4 +55,4 @@ class ClearTest : public testBase {
   DISALLOW_COPY_AND_ASSIGN(ClearTest);
 };
 }  // namespace vkbench
-#endif  // VKBENCH_CLEARTEST_H
+#endif  // SRC_TESTS_CLEAR_H_

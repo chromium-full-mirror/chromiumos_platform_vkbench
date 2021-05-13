@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifndef __VKBENCH_VKBASE_H__
-#define __VKBENCH_VKBASE_H__
+#ifndef SRC_VKBASE_H_
+#define SRC_VKBASE_H_
 
-#include <vector>
 #include <vulkan/vulkan.hpp>
 
-#include "utils.h"
+#include <vector>
+
+#include "./utils.h"
 
 namespace vkbench {
 class vkBase;
@@ -53,7 +54,6 @@ class vkBase {
   // Helper function
   uint32_t GetMemoryType(uint32_t bits, vk::MemoryPropertyFlags properties);
   vkImage* GetReadableImage(vkImage* src, vk::Extent2D size, vk::Format format);
-  DISALLOW_COPY_AND_ASSIGN(vkBase);
 
  protected:
   // Vulkan general method.
@@ -83,7 +83,8 @@ class vkBase {
  private:
   vkBase() {}
   static vkBase* singleton_;
+  DISALLOW_COPY_AND_ASSIGN(vkBase);
 };
 
 }  // namespace vkbench
-#endif
+#endif  // SRC_VKBASE_H_
