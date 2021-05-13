@@ -8,28 +8,15 @@
 #include "../testBase.h"
 
 namespace vkbench {
-class DrawSizeTest : public testBase {
- public:
-  DrawSizeTest(uint64_t size, vkBase* base) {
-    vk = base;
-    img_size_.setHeight(size).setWidth(size);
-    snprintf(name_, 100, "DrawSizeTest_%u", img_size_.height);
-    snprintf(desp_, 1024, "Time to draw %ux%u image.", img_size_.height,
-             img_size_.width);
-  }
-  ~DrawSizeTest() override = default;
+namespace draw {
 
-  static std::vector<testBase*> GenTests() {
-    return std::vector<testBase*>{
-        new vkbench::DrawSizeTest(16, vkBase::GetInstance()),
-        new vkbench::DrawSizeTest(64, vkBase::GetInstance()),
-        new vkbench::DrawSizeTest(128, vkBase::GetInstance()),
-        new vkbench::DrawSizeTest(512, vkBase::GetInstance()),
-        new vkbench::DrawSizeTest(1024, vkBase::GetInstance()),
-    };
-  }
-  const char* Name() const override { return name_; }
-  const char* Desp() const override { return desp_; }
+class DrawSize : public testBase {
+ public:
+  DrawSize(uint64_t size, vkBase* base);
+  ~DrawSize() override = default;
+
+  const char* Name() const override { return name_.c_str(); }
+  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "us"; }
   Image GetImage() const override;
 
@@ -43,8 +30,8 @@ class DrawSizeTest : public testBase {
   void CreateGraphicsPipeline();
   void CreateFrameBuffers();
 
-  char name_[100];
-  char desp_[1024];
+  std::string name_;
+  std::string desp_;
   std::vector<vk::SubmitInfo> smt_infos_;
   std::vector<vk::CommandBuffer> cmd_buffers_;
   vk::Extent2D img_size_;
@@ -57,7 +44,11 @@ class DrawSizeTest : public testBase {
   vkImage* img_;
   vk::ImageView img_view_;
 
-  DISALLOW_COPY_AND_ASSIGN(DrawSizeTest);
+  DISALLOW_COPY_AND_ASSIGN(DrawSize);
 };
+
+// GenTests generate all the draw tests.
+std::vector<vkbench::testBase*> GenTests();
+}  // namespace draw
 }  // namespace vkbench
 #endif  // SRC_TESTS_DRAW_H_

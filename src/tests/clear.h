@@ -8,22 +8,15 @@
 #include "../testBase.h"
 
 namespace vkbench {
-class ClearTest : public testBase {
- public:
-  ClearTest(vkBase* base) {
-    vk = base;
-    clear_color_.setColor({std::array<float, 4>{0.f, 0.f, 1.f, 1.f}});  // Blue
-    snprintf(name_, 100, "ClearTest");
-    snprintf(desp_, 1024, "Time to clear window to specific color.");
-  }
-  ~ClearTest() override = default;
+namespace clear {
 
-  static std::vector<testBase*> GenTests() {
-    return std::vector<testBase*>{
-        new vkbench::ClearTest(vkBase::GetInstance())};
-  }
-  const char* Name() const override { return name_; }
-  const char* Desp() const override { return desp_; }
+class Clear : public testBase {
+ public:
+  Clear(vkBase* base);
+  ~Clear() override = default;
+
+  const char* Name() const override { return name_.c_str(); }
+  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "mpixels_sec"; }
   double FormatMeasurement(double time) override {
     return img_size_.width * img_size_.height / time;
@@ -39,8 +32,8 @@ class ClearTest : public testBase {
   void CreateRenderPass();
   void CreateFrameBuffers();
 
-  char name_[100];
-  char desp_[1024];
+  std::string name_;
+  std::string desp_;
   vk::ClearValue clear_color_;
   std::vector<vk::SubmitInfo> smt_infos_;
   std::vector<vk::CommandBuffer> cmd_buffers_;
@@ -52,7 +45,11 @@ class ClearTest : public testBase {
   vkImage* img_;
   vk::ImageView img_view_;
 
-  DISALLOW_COPY_AND_ASSIGN(ClearTest);
+  DISALLOW_COPY_AND_ASSIGN(Clear);
 };
+// GenTests generate all the clear tests.
+std::vector<vkbench::testBase*> GenTests();
+
+}  // namespace clear
 }  // namespace vkbench
 #endif  // SRC_TESTS_CLEAR_H_

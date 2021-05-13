@@ -11,8 +11,8 @@
 
 #include "./filepath.h"
 #include "./utils.h"
-#include "tests/clearTest.h"
-#include "tests/drawSizeTest.h"
+#include "tests/clear.h"
+#include "tests/draw.h"
 #include "tests/submit.h"
 
 // g_list determines should we show the test list.
@@ -183,8 +183,8 @@ std::vector<vkbench::testBase*> genTests(
       a.insert(a.end(), b.begin(), b.end());
   };
   appendList(all_tests, vkbench::submit::GenTests());
-  appendList(all_tests, vkbench::DrawSizeTest::GenTests());
-  appendList(all_tests, vkbench::ClearTest::GenTests());
+  appendList(all_tests, vkbench::draw::GenTests());
+  appendList(all_tests, vkbench::clear::GenTests());
 
   auto filterTests = [enabled_tests,
                       disabled_tests](const vkbench::testBase* test) {

@@ -2,57 +2,62 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "drawSizeTest.h"
+#include "./clear.h"
 
-extern FilePath g_spirv_dir;
+#include <fmt/format.h>
 
 namespace vkbench {
-void DrawSizeTest::Initialize() {
+namespace clear {
+const char* TEST_PREFIX = "clear";
+
+Clear::Clear(vkBase* base) {
+  vk = base;
+  clear_color_.setColor({std::array<float, 4>{0.f, 0.f, 1.f, 1.f}});  // Blue
+  name_ = fmt::format("{}.Clear", TEST_PREFIX);
+  desp_ = "Clears the window to specific color.";
+}
+void Clear::Initialize() {
   CreateRenderPass();
-  CreateGraphicsPipeline();
   CreateFrameBuffers();
+
   // Create a cmdBuffer with draw call.
   cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
   for (const auto& buffer : cmd_buffers_) {
     buffer.begin(vk::CommandBufferBeginInfo());
-    vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f, 1.f});
     vk::RenderPassBeginInfo render_pass_info;
     render_pass_info.setFramebuffer(frame_buffer_)
         .setRenderPass(render_pass_)
         .setClearValueCount(1)
-        .setPClearValues(&clear_color)
+        .setPClearValues(&clear_color_)
         .setRenderArea(vk::Rect2D({}, img_size_));
     buffer.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
-    buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline_);
-    buffer.draw(3, 1, 0, 0);
     buffer.endRenderPass();
     buffer.end();
   }
+
   vk::SubmitInfo info;
   info.setCommandBufferCount(1).setPCommandBuffers(cmd_buffers_.data());
   smt_infos_.push_back(info);
 }
 
-void DrawSizeTest::Run() {
+void Clear::Run() {
   vk->GetGFXQueue().submit(smt_infos_, {});
   vk->GetGFXQueue().waitIdle();
 }
 
-void DrawSizeTest::Destroy() {
+void Clear::Destroy() {
   vk::Device device = vk->GetDevice();
   device.destroyImageView(img_view_);
   delete img_;
 
   device.destroyFramebuffer(frame_buffer_);
   device.destroyRenderPass(render_pass_);
-  device.destroyPipeline(graphics_pipeline_);
-  device.destroyPipelineLayout(pipeline_layout_);
   device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
   smt_infos_.clear();
 }
 
-void DrawSizeTest::CreateRenderPass() {
+void Clear::CreateRenderPass() {
   vk::AttachmentDescription att_description;
   att_description.setSamples(vk::SampleCountFlagBits::e1)
       .setFormat(img_format_)
@@ -77,66 +82,7 @@ void DrawSizeTest::CreateRenderPass() {
   render_pass_ = vk->GetDevice().createRenderPass(render_pass_info);
 }
 
-void DrawSizeTest::CreateGraphicsPipeline() {
-  std::string vert_shader_code = readShaderFile("drawSizeTest.vert.spv");
-  std::string frag_shader_code = readShaderFile("drawSizeTest.frag.spv");
-  vk::Device device = vk->GetDevice();
-
-  vk::ShaderModule vert_shader_module =
-      CreateShaderModule(device, vert_shader_code);
-  DEFER(device.destroyShaderModule(vert_shader_module));
-  vk::ShaderModule frag_shader_module =
-      CreateShaderModule(device, frag_shader_code);
-  DEFER(device.destroyShaderModule(frag_shader_module));
-  vk::PipelineShaderStageCreateInfo shader_stages[] = {
-      {{}, vk::ShaderStageFlagBits::eVertex, vert_shader_module, "main"},
-      {{}, vk::ShaderStageFlagBits::eFragment, frag_shader_module, "main"}};
-
-  vk::PipelineVertexInputStateCreateInfo vertex_input;
-  vk::PipelineInputAssemblyStateCreateInfo input_assembly;
-  input_assembly.setTopology(vk::PrimitiveTopology::eTriangleList);
-
-  vk::Viewport viewport;
-  viewport.setWidth(img_size_.width).setHeight(img_size_.height).setMaxDepth(1);
-  vk::Rect2D scissor;
-  scissor.setOffset({0, 0}).setExtent(img_size_);
-  vk::PipelineViewportStateCreateInfo viewport_state;
-  viewport_state.setViewportCount(1)
-      .setPViewports(&viewport)
-      .setScissorCount(1)
-      .setPScissors(&scissor);
-
-  vk::PipelineRasterizationStateCreateInfo rasterizer;
-  rasterizer.setLineWidth(1);
-  vk::PipelineMultisampleStateCreateInfo multisampling;
-  multisampling.setRasterizationSamples(vk::SampleCountFlagBits::e1);
-  vk::PipelineColorBlendAttachmentState color_attachment;
-  color_attachment.setBlendEnable(false).setColorWriteMask(
-      vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
-  vk::PipelineColorBlendStateCreateInfo color_info;
-  color_info.setAttachmentCount(1).setPAttachments(&color_attachment);
-
-  vk::PipelineLayoutCreateInfo layout_info;
-  pipeline_layout_ = device.createPipelineLayout(layout_info);
-
-  vk::GraphicsPipelineCreateInfo pipelineInfo;
-  pipelineInfo.setStageCount(2)
-      .setPStages(shader_stages)
-      .setPVertexInputState(&vertex_input)
-      .setPInputAssemblyState(&input_assembly)
-      .setPViewportState(&viewport_state)
-      .setPRasterizationState(&rasterizer)
-      .setPMultisampleState(&multisampling)
-      .setPColorBlendState(&color_info)
-      .setLayout(pipeline_layout_)
-      .setRenderPass(render_pass_);
-
-  graphics_pipeline_ =
-      (vk::Pipeline &&) device.createGraphicsPipeline({}, pipelineInfo);
-}
-
-void DrawSizeTest::CreateFrameBuffers() {
+void Clear::CreateFrameBuffers() {
   const vk::Device device = vk->GetDevice();
 
   img_ = vk->AllocateImage(img_size_, img_format_,
@@ -166,7 +112,7 @@ void DrawSizeTest::CreateFrameBuffers() {
   frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
 
-Image DrawSizeTest::GetImage() const {
+Image Clear::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = vk->GetReadableImage(img_, img_size_, img_format_);
   DEFER(delete dest);
@@ -177,4 +123,9 @@ Image DrawSizeTest::GetImage() const {
   return Image(data, img_size_, sub_resource_layout);
 }
 
+// GenTests generate all the clear tests.
+std::vector<vkbench::testBase*> GenTests() {
+  return std::vector<testBase*>{new Clear(vkBase::GetInstance())};
+}
+}  // namespace clear
 }  // namespace vkbench
