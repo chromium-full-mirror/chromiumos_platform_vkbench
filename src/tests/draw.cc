@@ -8,7 +8,7 @@ extern FilePath g_spirv_dir;
 
 namespace vkbench {
 namespace draw {
-const char *TEST_PREFIX = "draw";
+const char* TEST_PREFIX = "draw";
 
 DrawSize::DrawSize(uint64_t size, vkBase* base) {
   vk = base;
@@ -148,10 +148,10 @@ void DrawSize::CreateGraphicsPipeline() {
 void DrawSize::CreateFrameBuffers() {
   const vk::Device device = vk->GetDevice();
 
-  img_ = vk->AllocateImage(img_size_, img_format_,
-                           vk::ImageUsageFlagBits::eColorAttachment |
-                               vk::ImageUsageFlagBits::eTransferSrc,
-                           vk::MemoryPropertyFlagBits::eDeviceLocal);
+  img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+                              vk::ImageUsageFlagBits::eColorAttachment |
+                                  vk::ImageUsageFlagBits::eTransferSrc,
+                              vk::MemoryPropertyFlagBits::eDeviceLocal);
 
   vk::ImageViewCreateInfo img_view_create_info;
   img_view_create_info.setViewType(vk::ImageViewType::e2D)
@@ -177,13 +177,13 @@ void DrawSize::CreateFrameBuffers() {
 
 Image DrawSize::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = vk->GetReadableImage(img_, img_size_, img_format_);
+  vkImage* dest = vk->GetReadableImage(img_, vk::ImageLayout::eGeneral,
+                                       img_size_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  const unsigned char* data = (const unsigned char*)device.mapMemory(
-      dest->GetMemory(), 0, VK_WHOLE_SIZE);
-  return Image(data, img_size_, sub_resource_layout);
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+               sub_resource_layout);
 }
 
 std::vector<testBase*> GenTests() {

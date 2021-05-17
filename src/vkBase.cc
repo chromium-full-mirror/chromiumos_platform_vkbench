@@ -45,26 +45,87 @@ vkImage::vkImage(vkBase* vkbase,
                  vk::MemoryPropertyFlags memory_properties,
                  vk::ImageTiling tiling) {
   vkbase_ = vkbase;
+  size_ = img_size;
+  format_ = img_format;
+  tiling_ = tiling;
+  mapped_memory_ = nullptr;
 
   vk::ImageCreateInfo img_create_info;
-  img_create_info.setFormat(img_format)
+  img_create_info.setFormat(format_)
       .setImageType(vk::ImageType::e2D)
       .setSamples(vk::SampleCountFlagBits::e1)
       .setUsage(usage)
       .setMipLevels(1)
       .setArrayLayers(1)
-      .setExtent(vk::Extent3D(img_size, 1))
+      .setExtent(vk::Extent3D(size_, 1))
       .setQueueFamilyIndexCount(1)
       .setPQueueFamilyIndices(&vkbase_->GetGFXQueueFamilyIndex())
-      .setInitialLayout(vk::ImageLayout::eUndefined)
-      .setTiling(tiling);
-  img_ = vkbase_->GetDevice().createImage(img_create_info);
-  vk::MemoryRequirements mem_req =
-      vkbase_->GetDevice().getImageMemoryRequirements(img_);
-  memory_ = vkbase_->GetDevice().allocateMemory(
+      .setInitialLayout(vk::ImageLayout::ePreinitialized)
+      .setTiling(tiling_);
+  vk::Device device = vkbase_->GetDevice();
+  img_ = device.createImage(img_create_info);
+  vk::MemoryRequirements mem_req = device.getImageMemoryRequirements(img_);
+  memory_ = device.allocateMemory(
       {mem_req.size,
        vkbase_->GetMemoryType(mem_req.memoryTypeBits, memory_properties)});
-  vkbase_->GetDevice().bindImageMemory(img_, memory_, 0);
+  device.bindImageMemory(img_, memory_, 0);
+}
+
+void* vkImage::GetMappedMemory() {
+  if (mapped_memory_ != nullptr) {
+    return mapped_memory_;
+  }
+  mapped_memory_ = vkbase_->GetDevice().mapMemory(memory_, 0, VK_WHOLE_SIZE);
+  return mapped_memory_;
+}
+
+void vkImage::UnmapMemory() {
+  if (mapped_memory_ == nullptr) {
+    return;
+  }
+
+  vkbase_->GetDevice().unmapMemory(memory_);
+  mapped_memory_ = nullptr;
+}
+
+void vkImage::MoveLayout(vk::CommandBuffer cmd,
+                         vk::ImageLayout src,
+                         vk::ImageLayout dst) {
+  vk::ImageMemoryBarrier img_memory_barrier;
+  // Transition image layout to target layout.
+  img_memory_barrier.setOldLayout(src)
+      .setNewLayout(dst)
+      .setImage(GetImage())
+      .setSubresourceRange({vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
+  cmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+                      vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr, 0,
+                      nullptr, 1, &img_memory_barrier);
+}
+
+void vkImage::FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y)) {
+  vk::Device device = vkbase_->GetDevice();
+  if (tiling_ != vk::ImageTiling::eLinear) {
+    RUNTIME_ERROR("vkGetImageSubresourceLayout needs linear tiling: %s",
+                  vk::to_string(tiling_).c_str());
+  }
+  if (format_ != vk::Format::eR8G8B8A8Unorm) {
+    RUNTIME_ERROR("Unsupported format with fill_function: %s",
+                  vk::to_string(format_).c_str());
+  }
+
+  vk::SubresourceLayout resource_layout = device.getImageSubresourceLayout(
+      GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
+  auto data = (unsigned char*)GetMappedMemory();
+  auto row_ptr = data + resource_layout.offset;
+  for (uint32_t y = 0; y < size_.height; y++) {
+    auto row = row_ptr;
+    for (uint32_t x = 0; x < size_.width; x++) {
+      std::array<uint8_t, 4> pixel = fill_function(y, x);
+      memcpy(row, pixel.data(), sizeof(char) * 4);
+      row += 4;
+    }
+    row_ptr += resource_layout.rowPitch;
+  }
 }
 
 vkImage::~vkImage() {
@@ -269,20 +330,10 @@ void vkBase::Destroy() {
   initialized_ = false;
 }
 
-// AllocateImage allocates an VkImage and returns its handle.
-vkImage* vkBase::AllocateImage(
-    vk::Extent2D img_size,
-    vk::Format img_format,
-    vk::ImageUsageFlags usage = vk::ImageUsageFlagBits::eColorAttachment,
-    vk::MemoryPropertyFlags memory_properties,
-    vk::ImageTiling tiling) {
-  return new vkImage(this, img_size, img_format, usage, memory_properties,
-                     tiling);
-}
-
-// GetReadableImage copys a image created with eTransferSrc to a readable
-// vkImage and returns it.
+// GetReadableImage copys a image created with eTransferSrc and returns a
+// readable vkImage in vk::ImageLayout::eGeneral layout.
 vkImage* vkBase::GetReadableImage(vkImage* src,
+                                  vk::ImageLayout src_layout,
                                   vk::Extent2D size,
                                   vk::Format format) {
   std::vector<vk::CommandBuffer> cmds = device_.allocateCommandBuffers(
@@ -292,51 +343,15 @@ vkImage* vkBase::GetReadableImage(vkImage* src,
   vk::CommandBuffer command = cmds[0];
 
   vkImage* dest =
-      AllocateImage(size, format, vk::ImageUsageFlagBits::eTransferDst,
-                    vk::MemoryPropertyFlagBits::eHostCoherent |
-                        vk::MemoryPropertyFlagBits::eHostVisible,
-                    vk::ImageTiling::eLinear);
+      new vkImage(this, size, format, vk::ImageUsageFlagBits::eTransferDst,
+                  vk::MemoryPropertyFlagBits::eHostCoherent |
+                      vk::MemoryPropertyFlagBits::eHostVisible,
+                  vk::ImageTiling::eLinear);
   command.begin(vk::CommandBufferBeginInfo());
-  vk::ImageMemoryBarrier img_memory_barrier[4];
-  // Transition dest image to transfer destination layout.
-  img_memory_barrier[0]
-      .setDstAccessMask(vk::AccessFlagBits::eTransferWrite)
-      .setOldLayout(vk::ImageLayout::eUndefined)
-      .setNewLayout(vk::ImageLayout::eTransferDstOptimal)
-      .setImage(dest->GetImage())
-      .setSubresourceRange({vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
-  // Transition src image to transfer source layout.
-  img_memory_barrier[1]
-      .setSrcAccessMask(vk::AccessFlagBits::eMemoryRead)
-      .setDstAccessMask(vk::AccessFlagBits::eTransferRead)
-      .setOldLayout(vk::ImageLayout::eGeneral)
-      .setNewLayout(vk::ImageLayout::eTransferSrcOptimal)
-      .setImage(src->GetImage())
-      .setSubresourceRange({vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
-  // Transition dst image to general layout.
-  img_memory_barrier[2]
-      .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
-      .setDstAccessMask(vk::AccessFlagBits::eMemoryRead)
-      .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
-      .setNewLayout(vk::ImageLayout::eGeneral)
-      .setImage(dest->GetImage())
-      .setSubresourceRange({vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
-  // Transition src image to transfer source layout.
-  img_memory_barrier[3]
-      .setSrcAccessMask(vk::AccessFlagBits::eTransferRead)
-      .setDstAccessMask(vk::AccessFlagBits::eMemoryRead)
-      .setOldLayout(vk::ImageLayout::eTransferSrcOptimal)
-      .setNewLayout(vk::ImageLayout::eGeneral)
-      .setImage(src->GetImage())
-      .setSubresourceRange({vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
-
-  command.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                          vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr,
-                          0, nullptr, 1, &img_memory_barrier[0]);
-  command.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                          vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr,
-                          0, nullptr, 1, &img_memory_barrier[1]);
-  // Copy the image
+  src->MoveLayout(command, src_layout, vk::ImageLayout::eTransferSrcOptimal);
+  dest->MoveLayout(command, vk::ImageLayout::eUndefined,
+                   vk::ImageLayout::eTransferDstOptimal);
+  // Copy the image from src to dest.
   vk::ImageCopy img_copy_region;
   img_copy_region.srcSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
       .setLayerCount(1);
@@ -348,14 +363,9 @@ vkImage* vkBase::GetReadableImage(vkImage* src,
   command.copyImage(src->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
                     dest->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,
                     &img_copy_region);
-  command.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                          vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr,
-                          0, nullptr, 1, &img_memory_barrier[2]);
-  command.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
-                          vk::PipelineStageFlagBits::eTransfer, {}, 0, nullptr,
-                          0, nullptr, 1, &img_memory_barrier[3]);
-
-  // Finish command buffer recording and submit.
+  src->MoveLayout(command, vk::ImageLayout::eTransferSrcOptimal, src_layout);
+  dest->MoveLayout(command, vk::ImageLayout::eTransferDstOptimal,
+                   vk::ImageLayout::eGeneral);
   command.end();
 
   std::vector<vk::SubmitInfo> submit_infos(1);

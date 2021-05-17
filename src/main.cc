@@ -12,6 +12,7 @@
 #include "./filepath.h"
 #include "./utils.h"
 #include "tests/clear.h"
+#include "tests/copy.h"
 #include "tests/draw.h"
 #include "tests/submit.h"
 
@@ -185,6 +186,7 @@ std::vector<vkbench::testBase*> genTests(
   appendList(all_tests, vkbench::submit::GenTests());
   appendList(all_tests, vkbench::draw::GenTests());
   appendList(all_tests, vkbench::clear::GenTests());
+  appendList(all_tests, vkbench::copy::GenTests());
 
   auto filterTests = [enabled_tests,
                       disabled_tests](const vkbench::testBase* test) {

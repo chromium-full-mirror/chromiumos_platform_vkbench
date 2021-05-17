@@ -21,15 +21,30 @@ class vkImage {
           vk::Format img_format,
           vk::ImageUsageFlags usage,
           vk::MemoryPropertyFlags memory_properties,
-          vk::ImageTiling tiling);
+          vk::ImageTiling tiling = vk::ImageTiling::eOptimal);
   ~vkImage();
 
   vk::Image GetImage() const { return img_; }
-  vk::DeviceMemory GetMemory() const { return memory_; }
+  void* GetMappedMemory();
+  void UnmapMemory();
+  // MoveLayout records the command to move the image from src to dst layout.
+  void MoveLayout(vk::CommandBuffer cmd,
+                  vk::ImageLayout src,
+                  vk::ImageLayout dst);
+  // FillImage fills the image by the fill_function.
+  void FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y));
 
+ private:
   vkBase* vkbase_;
+
   vk::Image img_;
+  vk::Extent2D size_;
+  vk::Format format_;
+  vk::ImageTiling tiling_;
   vk::DeviceMemory memory_;
+  void* mapped_memory_;
+
+  DISALLOW_COPY_AND_ASSIGN(vkImage);
 };
 
 class vkBase {
@@ -46,14 +61,12 @@ class vkBase {
   const vk::CommandPool& GetCommandPool() const { return cmd_pool_; }
   const uint32_t& GetGFXQueueFamilyIndex() const { return gfx_queue_idx_; }
 
-  vkImage* AllocateImage(vk::Extent2D img_size,
-                         vk::Format img_format,
-                         vk::ImageUsageFlags usage,
-                         vk::MemoryPropertyFlags memory_properties = {},
-                         vk::ImageTiling tiling = vk::ImageTiling::eOptimal);
   // Helper function
   uint32_t GetMemoryType(uint32_t bits, vk::MemoryPropertyFlags properties);
-  vkImage* GetReadableImage(vkImage* src, vk::Extent2D size, vk::Format format);
+  vkImage* GetReadableImage(vkImage* src,
+                            vk::ImageLayout src_layout,
+                            vk::Extent2D size,
+                            vk::Format format);
 
  protected:
   // Vulkan general method.
