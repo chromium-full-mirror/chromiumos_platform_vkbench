@@ -6,6 +6,7 @@
 #define SRC_UTILS_H_
 
 #include <fmt/format.h>
+#include <fmt/printf.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -62,39 +63,49 @@ bool IsItemInVector(const std::vector<std::string>& list,
 bool check_file_existence(const char* file_path, struct stat* buffer = NULL);
 bool check_dir_existence(const char* file_path);
 
-inline void DbgPrintf(bool should_abort,
+inline void DbgPrintf(bool should_raise_exception,
                       const char* filename,
                       int line,
                       FILE* fileid,
-                      const char* format,
-                      ...) {
-  va_list args;
-  va_start(args, format);
-  std::string debug_header, string_format;
+                      const fmt::string_view format,
+                      fmt::format_args args) {
+  std::string content = fmt::vformat(format, args);
   if (g_verbose) {
-    debug_header = fmt::format("[{}:{}]", filename, line);
-    string_format = fmt::format("{:>30} {}\n", debug_header, format);
-  } else {
-    string_format = fmt::format("{}\n", format);
+    // Append debugging info. Only shows the basename of the file.
+    FilePath f = FilePath(filename);
+    int dir_length = strlen(f.DirName().c_str());
+    std::string debug_header =
+        fmt::format("[{}:{}]", filename + dir_length + 1, line);
+    content = fmt::format("{:<15} {}", debug_header, content);
   }
-  vfprintf(fileid, string_format.c_str(), args);
-  va_end(args);
-  if (should_abort)
-    throw std::runtime_error("");
+  fmt::print(fileid, "{}\n", content);
+  if (should_raise_exception)
+    throw std::runtime_error(content);
+}
+
+template <typename S, typename... Args>
+void vlog(bool s,
+          const char* file,
+          int line,
+          FILE* fileid,
+          const S& format,
+          Args&&... args) {
+  DbgPrintf(s, file, line, fileid, format,
+            fmt::make_args_checked<Args...>(format, args...));
 }
 
 #define DEBUG(fmt, ...)        \
-  {                            \
+  do {                         \
     if (g_verbose) {           \
       LOG(fmt, ##__VA_ARGS__); \
     }                          \
-  }
+  } while (0)
 #define LOG(fmt, ...) \
-  { DbgPrintf(false, __FILE__, __LINE__, stdout, fmt, ##__VA_ARGS__); }
+  vlog(false, __FILE__, __LINE__, stdout, fmt, ##__VA_ARGS__)
 #define ERROR(fmt, ...) \
-  { DbgPrintf(false, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__); }
+  vlog(false, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
 #define RUNTIME_ERROR(fmt, ...) \
-  { DbgPrintf(true, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__); }
+  vlog(true, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
 
 // Put this in the declarations for a class to be uncopyable.
 #define DISALLOW_COPY(TypeName) TypeName(const TypeName&) = delete

@@ -5,6 +5,7 @@
 #ifndef SRC_FILEPATH_H_
 #define SRC_FILEPATH_H_
 
+#include <fmt/format.h>
 #include <iostream>
 #include <string>
 
@@ -29,6 +30,15 @@ class FilePath {
   char kSeparators[2] = "/";
   char kCurrentDirectory[2] = ".";
 };
+
+template <>
+struct fmt::formatter<FilePath> : formatter<string_view> {
+  template <typename FormatContext>
+  auto format(FilePath c, FormatContext& ctx) {
+    return formatter<string_view>::format(std::string(c.c_str()), ctx);
+  }
+};
+
 bool CreateDirectory(const FilePath&);
 std::string::size_type FindDriveLetter(std::string path);
 

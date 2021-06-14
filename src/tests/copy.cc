@@ -49,7 +49,7 @@ void CopyImage::Initialize() {
       return std::array<uint8_t, 4>{r, g, b, 255};
     });
   } else {
-    RUNTIME_ERROR("Unsupported colors for copy test: %s", color_.c_str());
+    RUNTIME_ERROR("Unsupported colors for copy test: {}", color_);
   }
 
   std::vector<vk::CommandBuffer> cmds = vk->GetDevice().allocateCommandBuffers(

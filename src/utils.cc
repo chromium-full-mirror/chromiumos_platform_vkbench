@@ -18,7 +18,7 @@ extern FilePath g_spirv_dir;
 
 void vkbench::Image::Save(FilePath file_path) {
   if (data_ == nullptr) {
-    DEBUG("No data to save to %s", file_path.c_str());
+    DEBUG("No data to save to {}", file_path);
     return;
   }
   std::string ext = "";
@@ -26,7 +26,7 @@ void vkbench::Image::Save(FilePath file_path) {
   std::string::size_type last_dot =
       file_path.value().find_last_of(".", std::string::npos);
   if (last_dot == std::string::npos) {
-    RUNTIME_ERROR("No image extension found for file: %s", file_path.c_str());
+    RUNTIME_ERROR("No image extension found for file: {}", file_path);
   }
   ext = file_path.value().substr(last_dot + 1);
 
@@ -35,9 +35,9 @@ void vkbench::Image::Save(FilePath file_path) {
   } else if (ext == "ppm") {
     savePPM(file_path);
   } else {
-    RUNTIME_ERROR("Unknown extension: %s", ext.c_str());
+    RUNTIME_ERROR("Unknown extension: {}", ext);
   }
-  DEBUG("Image saved to %s", file_path.c_str());
+  DEBUG("Image saved to {}", file_path);
   // Try to flush saved image to disk such that more data survives a hard crash.
   system("/bin/sync");
 }
@@ -75,7 +75,7 @@ void vkbench::Image::savePNG(FilePath file_path) {
   /* create file */
   FILE* file = fopen(file_path.c_str(), "wb");
   if (!file)
-    RUNTIME_ERROR("File %s couldn't be opened for writing", file_path.c_str());
+    RUNTIME_ERROR("File {} couldn't be opened for writing", file_path);
   DEFER(fclose(file));
 
   png_bytep* row_pointers = new png_bytep[sizeof(png_bytep) * size_.height];
@@ -130,14 +130,14 @@ void PrintDateTime() {
   struct tm tm_info;
   localtime_r(&timer, &tm_info);
   strftime(buffer, 26, "%Y-%m-%d %H:%M:%S", &tm_info);
-  LOG("# DateTime: %s", buffer)
+  LOG("# DateTime: {}", buffer);
 }
 
 std::string readShaderFile(const std::string& filename) {
   FilePath file_path = g_spirv_dir.Append(FilePath(filename));
   std::ifstream file(file_path.value(), std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
-    RUNTIME_ERROR("Failed to open %s", file_path.c_str());
+    RUNTIME_ERROR("Failed to open {}", file_path);
   }
   DEFER(file.close());
 

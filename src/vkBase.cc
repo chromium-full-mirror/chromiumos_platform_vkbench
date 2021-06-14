@@ -22,7 +22,7 @@ bool IsLayerSupported(const char* layer) {
       return true;
     }
   }
-  LOG("Layer %s is not support.", layer);
+  LOG("Layer {} is not support.", layer);
   return false;
 }
 
@@ -34,7 +34,7 @@ bool IsExtensionSupported(const char* ext) {
       return true;
     }
   }
-  DEBUG("Extension %s is not supported.", ext);
+  DEBUG("Extension {} is not supported.", ext);
   return false;
 }
 
@@ -105,12 +105,12 @@ void vkImage::MoveLayout(vk::CommandBuffer cmd,
 void vkImage::FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y)) {
   vk::Device device = vkbase_->GetDevice();
   if (tiling_ != vk::ImageTiling::eLinear) {
-    RUNTIME_ERROR("vkGetImageSubresourceLayout needs linear tiling: %s",
-                  vk::to_string(tiling_).c_str());
+    RUNTIME_ERROR("vkGetImageSubresourceLayout needs linear tiling: {}",
+                  vk::to_string(tiling_));
   }
   if (format_ != vk::Format::eR8G8B8A8Unorm) {
-    RUNTIME_ERROR("Unsupported format with fill_function: %s",
-                  vk::to_string(format_).c_str());
+    RUNTIME_ERROR("Unsupported format with fill_function: {}",
+                  vk::to_string(format_));
   }
 
   vk::SubresourceLayout resource_layout = device.getImageSubresourceLayout(
@@ -148,8 +148,8 @@ void CreateDebugUtilsMessengerEXT(
       reinterpret_cast<const VkAllocationCallbacks*>(kPallocator),
       reinterpret_cast<VkDebugUtilsMessengerEXT*>(pdebug_messengeer)));
   if (result != vk::Result::eSuccess) {
-    RUNTIME_ERROR("vkCreateDebugUtilsMessengerEXT failed: %s",
-                  vk::to_string(result).c_str());
+    RUNTIME_ERROR("vkCreateDebugUtilsMessengerEXT failed: {}",
+                  vk::to_string(result));
   }
 }
 
@@ -197,17 +197,17 @@ ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   UNUSED(pUserData);
   switch (messageSeverity) {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-      DEBUG("%s", kPcallbackData->pMessage);
+      DEBUG("{}", kPcallbackData->pMessage);
       break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-      LOG("%s", kPcallbackData->pMessage);
+      LOG("{}", kPcallbackData->pMessage);
       break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-      ERROR("%s", kPcallbackData->pMessage);
+      ERROR("{}", kPcallbackData->pMessage);
       break;
     default:
-      RUNTIME_ERROR("%s", kPcallbackData->pMessage);
+      RUNTIME_ERROR("{}", kPcallbackData->pMessage);
   }
   return VK_FALSE;
 }
@@ -241,7 +241,7 @@ void vkBase::CreateInstance() {
             [](const char* ext) { return !IsExtensionSupported(ext); }),
         debug_extension_.end());
     if (validation_layers_.size() == 0 || debug_extension_.size() == 0) {
-      LOG("Validation layer is not supported. Less log will be printed.")
+      LOG("Validation layer is not supported. Less log will be printed.");
       enable_validation_layer_ = false;
     } else {
       createInfo.setEnabledExtensionCount(debug_extension_.size())

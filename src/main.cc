@@ -54,7 +54,7 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   try {
     test->Setup();
   } catch (const vk::SystemError& err) {
-    LOG("Setup failed: %s", err.what());
+    LOG("Setup failed: {}", err.what());
     test->Cleanup();
     throw;
   }
@@ -72,7 +72,7 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   try {
     test->Initialize();
   } catch (const vk::SystemError& err) {
-    LOG("Test failed to initialize: %s", err.what());
+    LOG("Test failed to initialize: {}", err.what());
     test->Destroy();
     throw;
   }
@@ -86,8 +86,8 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   double score = -1.f;
   do {
     time = TimeTest(test, iteration);
-    DEBUG("iterations: %llu, time: %llu us, time/iter: %llu us", iteration,
-          time, time / iteration)
+    DEBUG("iterations: {}, time: {} us, time/iter: {} us", iteration, time,
+          time / iteration);
     if (time > duration_us) {
       score = time / iteration;
       break;
@@ -96,18 +96,17 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   } while ((1ull << 40) > iteration);
   // Returns 0.0 if it ran max iterations in less than test time.
   if (score <= 0.01f)
-    LOG("%s: measurement may not be accurate.", test->Name())
+    LOG("{}: measurement may not be accurate.", test->Name());
   score = test->FormatMeasurement(score);
-  LOG("@RESULT: %46s = %10.2f %-15s", test->Name(), score, test->Unit());
+  LOG("@RESULT: {:<46s} = {:>10.2f} {:<15s}", test->Name(), score,
+      test->Unit());
   try {
-    char file_name[1024];
-    snprintf(file_name, sizeof(file_name), "%s.png", test->Name());
-    FilePath file_path = g_out_dir.Append(FilePath(file_name));
-
+    FilePath file_path =
+        g_out_dir.Append(FilePath(fmt::format("{}.png", test->Name())));
     vkbench::Image image = test->GetImage();
     image.Save(file_path);
   } catch (std::runtime_error err) {
-    DEBUG("Get runtime_error while SaveImage: %s.", err.what());
+    DEBUG("Get runtime_error while SaveImage: {}.", err.what());
   }
 }
 
@@ -125,7 +124,7 @@ Usage: vkbench [OPTIONS]
                          instance if possible. It also runs a reduced number
                          of tests and checks the validity of each tests.
   --spirv_dir            Path to SPIRV code for test.(default: shaders/)
-  --out_dir              Path to the output directory.),")
+  --out_dir              Path to the output directory.),");
 }
 
 bool prefixFind(std::vector<std::string> list, std::string name) {
@@ -162,9 +161,9 @@ bool ParseArgv(int argc,
   }
 
   if (optind < argc) {
-    ERROR("Unknown argv: ")
+    ERROR("Unknown argv: ");
     while (optind < argc)
-      ERROR("%s ", argv[optind++])
+      ERROR("{} ", argv[optind++]);
     return false;
   }
   return true;
@@ -219,12 +218,12 @@ int main(int argc, char* argv[]) {
 
   if (g_list) {
     for (const auto& test : all_tests) {
-      LOG("%s: %s", test->Name(), test->Desp())
+      LOG("{}: {}", test->Name(), test->Desp());
     }
     return false;
   }
 
-  LOG("@TEST_BEGIN")
+  LOG("@TEST_BEGIN");
   PrintDateTime();
   for (auto i = 0; i < all_tests.size(); i++) {
     auto& test = all_tests[i];
@@ -236,7 +235,7 @@ int main(int argc, char* argv[]) {
         if (!g_hasty)
           test->vk->Destroy();
       } catch (const std::runtime_error error) {
-        LOG("@RESULT: %46s = ERROR[%s]", test->Name(), error.what());
+        LOG("@RESULT: {:>46f} = ERROR[{}]", test->Name(), error.what());
       }
     }
 

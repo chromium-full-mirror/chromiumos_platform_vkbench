@@ -33,7 +33,7 @@ LoadOp::LoadOp(vkBase* base,
   } else if (color == "black") {
     clear_color_.setColor(BLACK);
   } else {
-    RUNTIME_ERROR("Undefined color: %s", color.c_str());
+    RUNTIME_ERROR("Undefined color: {}", color);
   }
   img_size_ = vk::Extent2D{size, size};
 
@@ -173,7 +173,7 @@ CmdClearImage::CmdClearImage(vkBase* base,
   } else if (color == "black") {
     clear_color_ = BLACK;
   } else {
-    RUNTIME_ERROR("Undefined color: %s", color.c_str());
+    RUNTIME_ERROR("Undefined color: {}", color);
   }
   img_size_ = vk::Extent2D{size, size};
 
