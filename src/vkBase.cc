@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <unistd.h>
 #include <vulkan/vulkan.hpp>
 
-#include <unistd.h>
 #include <algorithm>
 #include <limits>
 
-#include "./utils.h"
-#include "./vkBase.h"
+#include "src/utils.h"
+#include "src/vkBase.h"
 
 extern int g_vlayer;
 

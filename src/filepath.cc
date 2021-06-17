@@ -2,14 +2,14 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "./filepath.h"
-#include "./utils.h"
-
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include <string>
 #include <vector>
+
+#include "src/filepath.h"
+#include "src/utils.h"
 
 inline void AppendToString(std::string* target, const std::string& source) {
   target->append(source);

@@ -5,12 +5,13 @@
 #ifndef SRC_TESTBASE_H_
 #define SRC_TESTBASE_H_
 
-#include "./filepath.h"
-#include "./utils.h"
-#include "./vkBase.h"
+#include <vulkan/vulkan.hpp>
 
 #include <vector>
-#include <vulkan/vulkan.hpp>
+
+#include "src/filepath.h"
+#include "src/utils.h"
+#include "src/vkBase.h"
 
 namespace vkbench {
 class testBase {

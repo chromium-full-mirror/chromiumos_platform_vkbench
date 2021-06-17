@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "submit.h"
 #include <fmt/format.h>
+#include <limits>
+#include <vector>
+
+#include "src/tests/submit.h"
 
 namespace vkbench {
 namespace submit {

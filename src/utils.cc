@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "./utils.h"
+#include "src/utils.h"
 
 extern FilePath g_spirv_dir;
 

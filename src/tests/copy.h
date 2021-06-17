@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "../testBase.h"
+#include "src/testBase.h"
 
 namespace vkbench {
 namespace copy {

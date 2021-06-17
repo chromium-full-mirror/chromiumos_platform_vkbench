@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "./copy.h"
 #include <fmt/format.h>
+
+#include "src/tests/copy.h"
+
 extern FilePath g_spirv_dir;
 
 namespace vkbench {

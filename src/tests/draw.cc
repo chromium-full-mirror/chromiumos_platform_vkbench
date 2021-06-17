@@ -2,8 +2,10 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#include "./draw.h"
 #include <fmt/format.h>
+
+#include "src/tests/draw.h"
+
 extern FilePath g_spirv_dir;
 
 namespace vkbench {

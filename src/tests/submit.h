@@ -5,7 +5,10 @@
 #ifndef SRC_TESTS_SUBMIT_H_
 #define SRC_TESTS_SUBMIT_H_
 
-#include "../testBase.h"
+#include <string>
+#include <vector>
+
+#include "src/testBase.h"
 
 namespace vkbench {
 namespace submit {

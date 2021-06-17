@@ -9,12 +9,12 @@
 #include <map>
 #include <vector>
 
-#include "./filepath.h"
-#include "./utils.h"
-#include "tests/clear.h"
-#include "tests/copy.h"
-#include "tests/draw.h"
-#include "tests/submit.h"
+#include "src/filepath.h"
+#include "src/tests/clear.h"
+#include "src/tests/copy.h"
+#include "src/tests/draw.h"
+#include "src/tests/submit.h"
+#include "src/utils.h"
 
 // g_list determines should we show the test list.
 int g_list = false;

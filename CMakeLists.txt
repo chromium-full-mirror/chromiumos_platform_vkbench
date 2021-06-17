@@ -8,7 +8,7 @@ find_package(Vulkan REQUIRED)
 find_package(PNG REQUIRED)
 find_package(fmt REQUIRED)
 
-include_directories(.)
+include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${Vulkan_INCLUDE_DIRS})
 include_directories(${PNG_INCLUDE_DIRS})
 link_libraries(${Vulkan_LIBRARIES})

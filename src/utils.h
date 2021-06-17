@@ -11,14 +11,14 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <vulkan/vulkan.hpp>
 
 #include <functional>
 #include <string>
 #include <utility>
 #include <vector>
-#include <vulkan/vulkan.hpp>
 
-#include "./filepath.h"
+#include "src/filepath.h"
 
 namespace vkbench {
 class Image {
