@@ -199,9 +199,12 @@ std::vector<vkbench::testBase*> genTests(
   };
   all_tests.erase(remove_if(all_tests.begin(), all_tests.end(), filterTests),
                   all_tests.end());
-  // Sort to bundle tests using same vulkan instance together.
+  // Sort to bundle tests based on its vulkan instance and test name.
   std::stable_sort(all_tests.begin(), all_tests.end(),
                    [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
+                     if (a->vk == b->vk) {
+                       return strcmp(a->Name(), b->Name()) < 0;
+                     }
                      return a->vk < b->vk;
                    });
   return all_tests;
