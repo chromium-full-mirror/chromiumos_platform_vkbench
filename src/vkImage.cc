@@ -9,7 +9,7 @@ vkImage::vkImage(vkBase* vkbase,
                  vk::Extent2D img_size,
                  vk::Format img_format,
                  vk::ImageUsageFlags usage,
-                 vk::MemoryPropertyFlags memory_properties,
+                 vkbench::vkMemoryRequirement requirement,
                  vk::ImageTiling tiling) {
   vkbase_ = vkbase;
   size_ = img_size;
@@ -34,7 +34,7 @@ vkImage::vkImage(vkBase* vkbase,
   vk::MemoryRequirements mem_req = device.getImageMemoryRequirements(img_);
   memory_ = device.allocateMemory(
       {mem_req.size,
-       vkbase_->GetMemoryType(mem_req.memoryTypeBits, memory_properties)});
+       vkbase_->GetMemoryType(mem_req.memoryTypeBits, requirement)});
   device.bindImageMemory(img_, memory_, 0);
 }
 
@@ -108,8 +108,8 @@ vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
 
   vkImage* dest = new vkbench::vkImage(
       vkbase_, size, format, vk::ImageUsageFlagBits::eTransferDst,
-      vk::MemoryPropertyFlagBits::eHostCoherent |
-          vk::MemoryPropertyFlagBits::eHostVisible,
+      {vk::MemoryPropertyFlagBits::eHostCoherent |
+       vk::MemoryPropertyFlagBits::eHostVisible},
       vk::ImageTiling::eLinear);
   command.begin(vk::CommandBufferBeginInfo());
   this->MoveLayout(command, vk::ImageLayout::eUndefined,

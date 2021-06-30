@@ -107,7 +107,7 @@ void LoadOp::CreateFrameBuffers() {
   img_ = new vkbench::vkImage(vk, img_size_, img_format_,
                               vk::ImageUsageFlagBits::eColorAttachment |
                                   vk::ImageUsageFlagBits::eTransferSrc,
-                              vk::MemoryPropertyFlagBits::eDeviceLocal,
+                              {vk::MemoryPropertyFlagBits::eDeviceLocal},
                               img_tiling_);
   vk::ImageViewCreateInfo img_view_create_info;
   img_view_create_info.setViewType(vk::ImageViewType::e2D)
@@ -181,7 +181,7 @@ void CmdClearImage::Initialize() {
                               vk::ImageUsageFlagBits::eColorAttachment |
                                   vk::ImageUsageFlagBits::eTransferDst |
                                   vk::ImageUsageFlagBits::eTransferSrc,
-                              vk::MemoryPropertyFlagBits::eDeviceLocal,
+                              {vk::MemoryPropertyFlagBits::eDeviceLocal},
                               img_tiling_);
   vk::CommandBuffer cmd = GetCommandBuffer();
   cmd.begin(vk::CommandBufferBeginInfo());

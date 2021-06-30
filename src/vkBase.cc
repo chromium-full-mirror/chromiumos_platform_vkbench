@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <limits>
+#include <map>
+#include <string>
 
 #include "src/utils.h"
 #include "src/vkBase.h"
@@ -14,6 +16,13 @@
 extern int g_vlayer;
 
 namespace vkbench {
+std::string vkMemoryRequirement::String() {
+  return fmt::format(
+      "include: {}, exclude: {}, prefer_include: {}, prefer_exclude: {}",
+      vk::to_string(include), vk::to_string(exclude),
+      vk::to_string(prefer_include), vk::to_string(prefer_exclude));
+}
+
 bool IsLayerSupported(const char* layer) {
   std::vector<vk::LayerProperties> availLayers =
       vk::enumerateInstanceLayerProperties();
@@ -243,21 +252,39 @@ void vkBase::SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds) {
 }
 
 uint32_t vkBase::GetMemoryType(uint32_t bits,
-                               vk::MemoryPropertyFlags properties) {
-  for (uint32_t i = 0; i < mem_properties_.memoryTypeCount; i++) {
-    if ((bits & 1) == 1) {
-      if (!properties)
-        return i;
-      if ((mem_properties_.memoryTypes[i].propertyFlags & properties) ==
-          properties) {
-        return i;
-      }
+                               vkbench::vkMemoryRequirement requirement) {
+  int maxScore, candidate;
+  bool found = false;
+  for (auto i = 0; i < mem_properties_.memoryTypeCount; i++) {
+    if (!(bits & (1 << i))) {
+      continue;
     }
-    bits >>= 1;
+    vk::MemoryPropertyFlags device_flags =
+        mem_properties_.memoryTypes[i].propertyFlags;
+    if ((device_flags & requirement.include) != requirement.include) {
+      continue;
+    }
+    if ((device_flags & requirement.exclude) != vk::MemoryPropertyFlagBits{}) {
+      continue;
+    }
+    // Add 1 for every prefer_include matches.
+    int score = __builtin_popcount(
+        static_cast<uint32_t>(device_flags & requirement.prefer_include));
+    // Substract 1 for every prefer_exclude matches.
+    score -= __builtin_popcount(
+        static_cast<uint32_t>(device_flags & requirement.prefer_exclude));
+
+    if (found == false || score > maxScore) {
+      found = true;
+      maxScore = score;
+      candidate = i;
+    }
   }
-  NOT_SUPPORT("No matching memory type found for {}",
-              vk::to_string(properties));
-  return 0;
+
+  if (found == false) {
+    NOT_SUPPORT("No matching memory type found for {}", requirement.String());
+  }
+  return candidate;
 }
 
 }  // namespace vkbench

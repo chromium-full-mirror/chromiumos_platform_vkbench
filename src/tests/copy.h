@@ -9,16 +9,17 @@
 #include <vector>
 
 #include "src/testBase.h"
+#include "src/vkBuffer.h"
 #include "src/vkImage.h"
 
 namespace vkbench {
 namespace copy {
 
 // Copy image copies the sampled image
-class CopyImage : public commandTestBase {
+class ImageToImage : public commandTestBase {
  public:
-  CopyImage(uint64_t size, std::string color, vkBase* base);
-  ~CopyImage() override = default;
+  ImageToImage(uint64_t size, std::string color, vkBase* base);
+  ~ImageToImage() override = default;
 
   const char* Unit() const override { return "us"; }
   Image GetImage() const override;
@@ -34,7 +35,34 @@ class CopyImage : public commandTestBase {
 
   vkbench::vkImage *src_img_, *dest_img_;
 
-  DISALLOW_COPY_AND_ASSIGN(CopyImage);
+  DISALLOW_COPY_AND_ASSIGN(ImageToImage);
+};
+
+class BufferToImage : public commandTestBase {
+ public:
+  BufferToImage(uint64_t img_size,
+                std::string color,
+                std::string buffer_memory_property,
+                vkBase* base);
+  ~BufferToImage() override = default;
+
+  const char* Unit() const override { return "us"; }
+  Image GetImage() const override;
+
+ protected:
+  void Initialize() override;
+  void Destroy() override;
+
+ private:
+  std::string color_;
+  vk::Extent2D img_size_;
+  vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
+
+  vkbench::vkBuffer* buffer_;
+  vkbench::vkImage* img_;
+  vkbench::vkMemoryRequirement buffer_memory_requirement_;
+
+  DISALLOW_COPY_AND_ASSIGN(BufferToImage);
 };
 
 // GenTests generate all the submit tests.

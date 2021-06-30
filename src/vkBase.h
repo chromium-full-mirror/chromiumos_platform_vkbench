@@ -7,11 +7,29 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <string>
 #include <vector>
 
 #include "src/utils.h"
 
 namespace vkbench {
+
+class vkMemoryRequirement {
+ public:
+  // include contains the requirements that the memory must have.
+  vk::MemoryPropertyFlags include;
+  // exclude contains the requirements that the memory must not have.
+  vk::MemoryPropertyFlags exclude;
+  // prefer_include contains the requirements that the memory prefer to have.
+  vk::MemoryPropertyFlags prefer_include;
+  // prefer_exclude contains the requirements that the memory prefer to not
+  // have.
+  vk::MemoryPropertyFlags prefer_exclude;
+
+  // String returns strings representation for logging.
+  std::string String();
+};
+
 class vkBase {
  public:
   virtual ~vkBase() = default;
@@ -29,7 +47,7 @@ class vkBase {
   // Helper function
   // GetMemoryType returns the index of a memory type that has all the requested
   // property bits set.
-  uint32_t GetMemoryType(uint32_t bits, vk::MemoryPropertyFlags properties);
+  uint32_t GetMemoryType(uint32_t bits, vkMemoryRequirement requirement);
   // SubmitAndWait submits CommandBuffers and wait for its completion.
   void SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds);
 

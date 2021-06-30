@@ -18,7 +18,7 @@ class vkImage {
           vk::Extent2D img_size,
           vk::Format img_format,
           vk::ImageUsageFlags usage,
-          vk::MemoryPropertyFlags memory_properties,
+          vkbench::vkMemoryRequirement requirement,
           vk::ImageTiling tiling = vk::ImageTiling::eOptimal);
   ~vkImage();
 

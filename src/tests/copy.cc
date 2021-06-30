@@ -13,30 +13,30 @@ namespace copy {
 const char* TEST_PREFIX = "copy";
 const std::vector<std::string> COLORS = {"noise", "white"};
 
-CopyImage::CopyImage(uint64_t size, std::string color, vkBase* base) {
+ImageToImage::ImageToImage(uint64_t size, std::string color, vkBase* base) {
   vk = base;
   img_size_.setHeight(size).setWidth(size);
   color_ = color;
-  name_ = fmt::format("{}.CopyImage.{}.{}", TEST_PREFIX, color, size);
-  desp_ = fmt::format("Copy {}x{} size {} image between buffers.", size, size,
+  name_ = fmt::format("{}.ImageToImage.{}.{}", TEST_PREFIX, color, size);
+  desp_ = fmt::format("Copy {}x{} size {} image using vkCopyImage.", size, size,
                       color);
 }
 
-void CopyImage::Initialize() {
+void ImageToImage::Initialize() {
   vkImage* temp_img = new vkbench::vkImage(
       vk, img_size_, img_format_, vk::ImageUsageFlagBits::eTransferSrc,
-      vk::MemoryPropertyFlagBits::eHostCoherent |
-          vk::MemoryPropertyFlagBits::eHostVisible,
+      {vk::MemoryPropertyFlagBits::eHostCoherent |
+       vk::MemoryPropertyFlagBits::eHostVisible},
       vk::ImageTiling::eLinear);
   DEFER(delete temp_img);
   src_img_ = new vkbench::vkImage(vk, img_size_, img_format_,
                                   vk::ImageUsageFlagBits::eTransferSrc |
                                       vk::ImageUsageFlagBits::eTransferDst,
-                                  vk::MemoryPropertyFlagBits::eDeviceLocal,
+                                  {vk::MemoryPropertyFlagBits::eDeviceLocal},
                                   vk::ImageTiling::eOptimal);
   dest_img_ = new vkbench::vkImage(
       vk, img_size_, img_format_, vk::ImageUsageFlagBits::eTransferDst,
-      vk::MemoryPropertyFlagBits::eDeviceLocal, vk::ImageTiling::eOptimal);
+      {vk::MemoryPropertyFlagBits::eDeviceLocal}, vk::ImageTiling::eOptimal);
   if (color_ == "white") {
     temp_img->FillImage([](int x, int y) {
       return std::array<uint8_t, 4>{255, 255, 255, 255};
@@ -48,7 +48,7 @@ void CopyImage::Initialize() {
                                     static_cast<uint8_t>(randi(255)), 255};
     });
   } else {
-    RUNTIME_ERROR("Unsupported colors for copy test: {}", color_);
+    RUNTIME_ERROR("Unsupported colors for ImageToImage test: {}", color_);
   }
 
   vk::CommandBuffer cmd = GetCommandBuffer();
@@ -93,16 +93,114 @@ void CopyImage::Initialize() {
   cmd.end();
 }
 
-void CopyImage::Destroy() {
+void ImageToImage::Destroy() {
   vkbench::commandTestBase::Destroy();
   delete src_img_;
   delete dest_img_;
 }
 
-Image CopyImage::GetImage() const {
+Image ImageToImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = src_img_->GetReadableImage(
       vk::ImageLayout::eTransferSrcOptimal, img_size_, img_format_);
+  DEFER(delete dest);
+  vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
+      dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+               sub_resource_layout);
+}
+
+BufferToImage::BufferToImage(uint64_t img_size,
+                             std::string color,
+                             std::string buffer_memory_property,
+                             vkBase* base) {
+  vk = base;
+  img_size_.setHeight(img_size).setWidth(img_size);
+  color_ = color;
+
+  buffer_memory_requirement_.prefer_exclude =
+      vk::MemoryPropertyFlagBits::eDeviceLocal;
+  buffer_memory_requirement_.include = vk::MemoryPropertyFlagBits::eHostVisible;
+  if (buffer_memory_property == "HostCoherent") {
+    buffer_memory_requirement_.include =
+        vk::MemoryPropertyFlagBits::eHostCoherent;
+  } else if (buffer_memory_property == "NonHostCoherent") {
+    buffer_memory_requirement_.exclude =
+        vk::MemoryPropertyFlagBits::eHostCoherent;
+  } else {
+    NOT_SUPPORT("memory property {} is not supported yet.",
+                buffer_memory_property);
+  }
+  name_ = fmt::format("{}.BufferToImage.{}.{}.{}", TEST_PREFIX,
+                      buffer_memory_property, color, img_size);
+  desp_ = fmt::format(
+      "Copy {} {} buffer to {}x{} image using vkCmdCopyBufferToImage.", color,
+      buffer_memory_requirement_.String(), img_size, img_size);
+}
+
+void BufferToImage::Initialize() {
+  // Create a buffer which capable to an image.
+  uint32_t buffer_size = img_size_.width * img_size_.height * 4;
+  buffer_ = new vkbench::vkBuffer(vk, buffer_size,
+                                  vk::BufferUsageFlagBits::eTransferSrc |
+                                      vk::BufferUsageFlagBits::eTransferDst,
+                                  buffer_memory_requirement_);
+  img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+                              vk::ImageUsageFlagBits::eTransferSrc |
+                                  vk::ImageUsageFlagBits::eTransferDst |
+                                  vk::ImageUsageFlagBits::eColorAttachment,
+                              {vk::MemoryPropertyFlagBits::eDeviceLocal},
+                              vk::ImageTiling::eOptimal);
+
+  // Fills the buffer with our data.
+  auto data = (unsigned char*)buffer_->GetMappedMemory();
+  for (auto i = 0; i < buffer_size; i++) {
+    if (i % 4 == 3) {
+      // Alpha channel, always set to 255.
+      data[i] = 255;
+      continue;
+    }
+
+    if (color_ == "white") {
+      data[i] = 255;
+    } else if (color_ == "noise") {
+      data[i] = randi(255);
+    } else {
+      RUNTIME_ERROR("color {} not support", color_);
+    }
+  }
+
+  vk::CommandBuffer cmd = GetCommandBuffer();
+  cmd.begin(vk::CommandBufferBeginInfo());
+  img_->MoveLayout(cmd, vk::ImageLayout::ePreinitialized,
+                   vk::ImageLayout::eTransferDstOptimal);
+  cmd.end();
+  vk->SubmitAndWait(cmd);
+
+  // Records the command to copy buffer to image.
+  cmd.begin(vk::CommandBufferBeginInfo());
+  vk::BufferImageCopy image_copy;
+  // BufferRowLength=0 or BufferImageHeight=0 means buffer tightly packed
+  // according to the imageExtent
+  image_copy.setBufferOffset(0).setBufferRowLength(0).setBufferImageHeight(0);
+  image_copy.setImageOffset(0)
+      .setImageExtent(vk::Extent3D(img_size_, 1))
+      .setImageSubresource({vk::ImageAspectFlagBits::eColor, 0, 0, 1});
+  cmd.copyBufferToImage(buffer_->GetBuffer(), img_->GetImage(),
+                        vk::ImageLayout::eTransferDstOptimal, image_copy);
+  cmd.end();
+}
+
+void BufferToImage::Destroy() {
+  vkbench::commandTestBase::Destroy();
+  delete buffer_;
+  delete img_;
+}
+
+Image BufferToImage::GetImage() const {
+  const vk::Device device = vk->GetDevice();
+  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eTransferDstOptimal,
+                                         img_size_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
@@ -114,7 +212,16 @@ std::vector<testBase*> GenTests() {
   std::vector<testBase*> tests;
   for (auto size : {64, 128, 512, 1024}) {
     for (auto color : COLORS) {
-      tests.push_back(new CopyImage(size, color, vkBase::GetInstance()));
+      tests.push_back(new ImageToImage(size, color, vkBase::GetInstance()));
+    }
+  }
+
+  for (auto size : {256, 512, 1024}) {
+    for (auto color : COLORS) {
+      for (auto memory_type : {"HostCoherent", "NonHostCoherent"}) {
+        tests.push_back(
+            new BufferToImage(size, color, memory_type, vkBase::GetInstance()));
+      }
     }
   }
   return tests;
