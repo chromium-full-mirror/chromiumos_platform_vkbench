@@ -16,7 +16,7 @@ namespace draw {
 
 class DrawSize : public commandTestBase {
  public:
-  DrawSize(uint64_t size, vkBase* base);
+  DrawSize(uint64_t width, vkBase* base);
   ~DrawSize() override = default;
 
   const char* Unit() const override { return "us"; }
@@ -31,7 +31,7 @@ class DrawSize : public commandTestBase {
   void CreateGraphicsPipeline();
   void CreateFrameBuffers();
 
-  vk::Extent2D img_size_;
+  vk::Extent2D img_extent_;
   vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
 
   vk::RenderPass render_pass_;

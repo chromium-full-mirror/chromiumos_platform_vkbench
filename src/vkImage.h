@@ -15,7 +15,7 @@ namespace vkbench {
 class vkImage {
  public:
   vkImage(vkBase* vkbase,
-          vk::Extent2D img_size,
+          vk::Extent2D extent,
           vk::Format img_format,
           vk::ImageUsageFlags usage,
           vkbench::vkMemoryRequirement requirement,
@@ -35,14 +35,14 @@ class vkImage {
   // GetReadableImage copys a image created with eTransferSrc and returns a
   // readable vkImage in vk::ImageLayout::eGeneral layout.
   vkImage* GetReadableImage(vk::ImageLayout src_layout,
-                            vk::Extent2D size,
+                            vk::Extent2D extent,
                             vk::Format format);
 
  private:
   vkBase* vkbase_;
 
   vk::Image img_;
-  vk::Extent2D size_;
+  vk::Extent2D extent_;
   vk::Format format_;
   vk::ImageTiling tiling_;
   vk::DeviceMemory memory_;

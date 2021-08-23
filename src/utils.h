@@ -25,9 +25,9 @@ class Image {
  public:
   Image() : data_(nullptr) {}
   Image(const unsigned char* data,
-        const vk::Extent2D size,
+        const vk::Extent2D extent,
         vk::SubresourceLayout resource_layout)
-      : size_(size), resource_layout_(resource_layout) {
+      : extent_(extent), resource_layout_(resource_layout) {
     data_ = new unsigned char[resource_layout_.size];
     memcpy(data_, data, resource_layout_.size);
   }
@@ -40,7 +40,7 @@ class Image {
   void savePNG(FilePath);
 
   unsigned char* data_;
-  vk::Extent2D size_;
+  vk::Extent2D extent_;
   vk::SubresourceLayout resource_layout_;
 };
 

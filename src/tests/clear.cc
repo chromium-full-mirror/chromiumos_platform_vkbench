@@ -20,7 +20,7 @@ const uint32_t CLEAR_CNT = 1024;
 LoadOp::LoadOp(vkBase* base,
                vk::Format format,
                vk::ImageTiling tiling,
-               uint32_t size,
+               uint32_t width,
                std::string color) {
   vk = base;
 
@@ -35,10 +35,10 @@ LoadOp::LoadOp(vkBase* base,
   } else {
     RUNTIME_ERROR("Undefined color: {}", color);
   }
-  img_size_ = vk::Extent2D{size, size};
+  img_extent_ = vk::Extent2D{width, width};
 
   name_ = fmt::format("{}.LoadOp.{}.{}.{}.{}", TEST_PREFIX,
-                      vk::to_string(format), to_string(tiling), size, color);
+                      vk::to_string(format), to_string(tiling), width, color);
   desp_ = fmt::format(
       "Clear the image with "
       "VK_ATTACHMENT_LOAD_OP_CLEAR/VK_ATTACHMENT_STORE_OP_STORE with {} "
@@ -57,7 +57,7 @@ void LoadOp::Initialize() {
       .setRenderPass(render_pass_)
       .setClearValueCount(1)
       .setPClearValues(&clear_color_)
-      .setRenderArea(vk::Rect2D({}, img_size_));
+      .setRenderArea(vk::Rect2D({}, img_extent_));
   for (uint32_t i = 0; i < CLEAR_CNT; i++) {
     cmd.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
     cmd.endRenderPass();
@@ -104,7 +104,7 @@ void LoadOp::CreateRenderPass() {
 void LoadOp::CreateFrameBuffers() {
   const vk::Device device = vk->GetDevice();
 
-  img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
                               vk::ImageUsageFlagBits::eColorAttachment |
                                   vk::ImageUsageFlagBits::eTransferSrc,
                               {vk::MemoryPropertyFlagBits::eDeviceLocal},
@@ -125,8 +125,8 @@ void LoadOp::CreateFrameBuffers() {
   frame_buffer_info.setRenderPass(render_pass_)
       .setAttachmentCount(1)
       .setPAttachments(&img_view_)
-      .setWidth(img_size_.width)
-      .setHeight(img_size_.height)
+      .setWidth(img_extent_.width)
+      .setHeight(img_extent_.height)
       .setLayers(1);
   frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
@@ -134,22 +134,22 @@ void LoadOp::CreateFrameBuffers() {
 Image LoadOp::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = img_->GetReadableImage(
-      vk::ImageLayout::eColorAttachmentOptimal, img_size_, img_format_);
+      vk::ImageLayout::eColorAttachmentOptimal, img_extent_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_extent_,
                sub_resource_layout);
 }
 
 double LoadOp::FormatMeasurement(double time) {
-  return img_size_.width * img_size_.height * CLEAR_CNT / time;
+  return img_extent_.width * img_extent_.height * CLEAR_CNT / time;
 }
 
 CmdClearImage::CmdClearImage(vkBase* base,
                              vk::Format format,
                              vk::ImageTiling tiling,
-                             uint32_t size,
+                             uint32_t width,
                              std::string color) {
   vk = base;
 
@@ -164,10 +164,10 @@ CmdClearImage::CmdClearImage(vkBase* base,
   } else {
     RUNTIME_ERROR("Undefined color: {}", color);
   }
-  img_size_ = vk::Extent2D{size, size};
+  img_extent_ = vk::Extent2D{width, width};
 
   name_ = fmt::format("{}.CmdClearImage.{}.{}.{}.{}", TEST_PREFIX,
-                      vk::to_string(format), to_string(tiling), size, color);
+                      vk::to_string(format), to_string(tiling), width, color);
   desp_ = fmt::format(
       "Construct a command buffer that clears the image by executing {} "
       "vkCmdClearColorImage in a single submit.",
@@ -177,7 +177,7 @@ CmdClearImage::CmdClearImage(vkBase* base,
 void CmdClearImage::Initialize() {
   const vk::Device device = vk->GetDevice();
 
-  img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
                               vk::ImageUsageFlagBits::eColorAttachment |
                                   vk::ImageUsageFlagBits::eTransferDst |
                                   vk::ImageUsageFlagBits::eTransferSrc,
@@ -207,17 +207,17 @@ void CmdClearImage::Destroy() {
 
 Image CmdClearImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest =
-      img_->GetReadableImage(vk::ImageLayout::eGeneral, img_size_, img_format_);
+  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eGeneral, img_extent_,
+                                         img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_extent_,
                sub_resource_layout);
 }
 
 double CmdClearImage::FormatMeasurement(double time) {
-  return img_size_.width * img_size_.height * CLEAR_CNT / time;
+  return img_extent_.width * img_extent_.height * CLEAR_CNT / time;
 }
 
 // GenTests generate all the clear tests.

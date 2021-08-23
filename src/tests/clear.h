@@ -19,7 +19,7 @@ class LoadOp : public commandTestBase {
   LoadOp(vkBase* base,
          vk::Format format,
          vk::ImageTiling tiling,
-         uint32_t size,
+         uint32_t width,
          std::string color);
   ~LoadOp() override = default;
 
@@ -37,7 +37,7 @@ class LoadOp : public commandTestBase {
 
   vk::Format img_format_;
   vk::ImageTiling img_tiling_;
-  vk::Extent2D img_size_;
+  vk::Extent2D img_extent_;
   vk::ClearValue clear_color_;
   vk::RenderPass render_pass_;
   vk::Framebuffer frame_buffer_;
@@ -52,7 +52,7 @@ class CmdClearImage : public commandTestBase {
   CmdClearImage(vkBase* base,
                 vk::Format format,
                 vk::ImageTiling tiling,
-                uint32_t size,
+                uint32_t width,
                 std::string color);
   ~CmdClearImage() override = default;
 
@@ -67,7 +67,7 @@ class CmdClearImage : public commandTestBase {
  private:
   vk::Format img_format_;
   vk::ImageTiling img_tiling_;
-  vk::Extent2D img_size_;
+  vk::Extent2D img_extent_;
   vk::ClearColorValue clear_color_;
   vkImage* img_;
 

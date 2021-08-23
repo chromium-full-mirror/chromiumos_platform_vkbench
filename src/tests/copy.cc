@@ -13,29 +13,29 @@ namespace copy {
 const char* TEST_PREFIX = "copy";
 const std::vector<std::string> COLORS = {"noise", "white"};
 
-ImageToImage::ImageToImage(uint64_t size, std::string color, vkBase* base) {
+ImageToImage::ImageToImage(uint64_t width, std::string color, vkBase* base) {
   vk = base;
-  img_size_.setHeight(size).setWidth(size);
+  img_extent_.setHeight(width).setWidth(width);
   color_ = color;
-  name_ = fmt::format("{}.ImageToImage.{}.{}", TEST_PREFIX, color, size);
-  desp_ = fmt::format("Copy {}x{} size {} image using vkCopyImage.", size, size,
-                      color);
+  name_ = fmt::format("{}.ImageToImage.{}.{}", TEST_PREFIX, color, width);
+  desp_ = fmt::format("Copy {}x{} size {} image using vkCopyImage.", width,
+                      width, color);
 }
 
 void ImageToImage::Initialize() {
   vkImage* temp_img = new vkbench::vkImage(
-      vk, img_size_, img_format_, vk::ImageUsageFlagBits::eTransferSrc,
+      vk, img_extent_, img_format_, vk::ImageUsageFlagBits::eTransferSrc,
       {vk::MemoryPropertyFlagBits::eHostCoherent |
        vk::MemoryPropertyFlagBits::eHostVisible},
       vk::ImageTiling::eLinear);
   DEFER(delete temp_img);
-  src_img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+  src_img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
                                   vk::ImageUsageFlagBits::eTransferSrc |
                                       vk::ImageUsageFlagBits::eTransferDst,
                                   {vk::MemoryPropertyFlagBits::eDeviceLocal},
                                   vk::ImageTiling::eOptimal);
   dest_img_ = new vkbench::vkImage(
-      vk, img_size_, img_format_, vk::ImageUsageFlagBits::eTransferDst,
+      vk, img_extent_, img_format_, vk::ImageUsageFlagBits::eTransferDst,
       {vk::MemoryPropertyFlagBits::eDeviceLocal}, vk::ImageTiling::eOptimal);
   if (color_ == "white") {
     temp_img->FillImage([](int x, int y) {
@@ -66,8 +66,8 @@ void ImageToImage::Initialize() {
       .setLayerCount(1);
   copy_region.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
       .setLayerCount(1);
-  copy_region.extent.setWidth(img_size_.width)
-      .setHeight(img_size_.height)
+  copy_region.extent.setWidth(img_extent_.width)
+      .setHeight(img_extent_.height)
       .setDepth(1);
   cmd.copyImage(temp_img->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
                 src_img_->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,
@@ -83,8 +83,8 @@ void ImageToImage::Initialize() {
       .setLayerCount(1);
   img_copy_region.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
       .setLayerCount(1);
-  img_copy_region.extent.setWidth(img_size_.width)
-      .setHeight(img_size_.height)
+  img_copy_region.extent.setWidth(img_extent_.width)
+      .setHeight(img_extent_.height)
       .setDepth(1);
   cmd.begin(vk::CommandBufferBeginInfo());
   cmd.copyImage(src_img_->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
@@ -102,20 +102,20 @@ void ImageToImage::Destroy() {
 Image ImageToImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = src_img_->GetReadableImage(
-      vk::ImageLayout::eTransferSrcOptimal, img_size_, img_format_);
+      vk::ImageLayout::eTransferSrcOptimal, img_extent_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_extent_,
                sub_resource_layout);
 }
 
-BufferToImage::BufferToImage(uint64_t img_size,
+BufferToImage::BufferToImage(uint64_t img_extent,
                              std::string color,
                              std::string buffer_memory_property,
                              vkBase* base) {
   vk = base;
-  img_size_.setHeight(img_size).setWidth(img_size);
+  img_extent_.setHeight(img_extent).setWidth(img_extent);
   color_ = color;
 
   buffer_memory_requirement_.prefer_exclude =
@@ -132,20 +132,20 @@ BufferToImage::BufferToImage(uint64_t img_size,
                 buffer_memory_property);
   }
   name_ = fmt::format("{}.BufferToImage.{}.{}.{}", TEST_PREFIX,
-                      buffer_memory_property, color, img_size);
+                      buffer_memory_property, color, img_extent);
   desp_ = fmt::format(
       "Copy {} {} buffer to {}x{} image using vkCmdCopyBufferToImage.", color,
-      buffer_memory_requirement_.String(), img_size, img_size);
+      buffer_memory_requirement_.String(), img_extent, img_extent);
 }
 
 void BufferToImage::Initialize() {
   // Create a buffer which capable to an image.
-  uint32_t buffer_size = img_size_.width * img_size_.height * 4;
+  uint32_t buffer_size = img_extent_.width * img_extent_.height * 4;
   buffer_ = new vkbench::vkBuffer(vk, buffer_size,
                                   vk::BufferUsageFlagBits::eTransferSrc |
                                       vk::BufferUsageFlagBits::eTransferDst,
                                   buffer_memory_requirement_);
-  img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
                               vk::ImageUsageFlagBits::eTransferSrc |
                                   vk::ImageUsageFlagBits::eTransferDst |
                                   vk::ImageUsageFlagBits::eColorAttachment,
@@ -184,7 +184,7 @@ void BufferToImage::Initialize() {
   // according to the imageExtent
   image_copy.setBufferOffset(0).setBufferRowLength(0).setBufferImageHeight(0);
   image_copy.setImageOffset(0)
-      .setImageExtent(vk::Extent3D(img_size_, 1))
+      .setImageExtent(vk::Extent3D(img_extent_, 1))
       .setImageSubresource({vk::ImageAspectFlagBits::eColor, 0, 0, 1});
   cmd.copyBufferToImage(buffer_->GetBuffer(), img_->GetImage(),
                         vk::ImageLayout::eTransferDstOptimal, image_copy);
@@ -200,27 +200,27 @@ void BufferToImage::Destroy() {
 Image BufferToImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eTransferDstOptimal,
-                                         img_size_, img_format_);
+                                         img_extent_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_extent_,
                sub_resource_layout);
 }
 
 std::vector<testBase*> GenTests() {
   std::vector<testBase*> tests;
-  for (auto size : {64, 128, 512, 1024}) {
+  for (auto width : {64, 128, 512, 1024}) {
     for (auto color : COLORS) {
-      tests.push_back(new ImageToImage(size, color, vkBase::GetInstance()));
+      tests.push_back(new ImageToImage(width, color, vkBase::GetInstance()));
     }
   }
 
-  for (auto size : {256, 512, 1024}) {
+  for (auto width : {256, 512, 1024}) {
     for (auto color : COLORS) {
       for (auto memory_type : {"HostCoherent", "NonHostCoherent"}) {
-        tests.push_back(
-            new BufferToImage(size, color, memory_type, vkBase::GetInstance()));
+        tests.push_back(new BufferToImage(width, color, memory_type,
+                                          vkBase::GetInstance()));
       }
     }
   }

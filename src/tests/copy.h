@@ -18,7 +18,7 @@ namespace copy {
 // Copy image copies the sampled image
 class ImageToImage : public commandTestBase {
  public:
-  ImageToImage(uint64_t size, std::string color, vkBase* base);
+  ImageToImage(uint64_t width, std::string color, vkBase* base);
   ~ImageToImage() override = default;
 
   const char* Unit() const override { return "us"; }
@@ -30,7 +30,7 @@ class ImageToImage : public commandTestBase {
 
  private:
   std::string color_;
-  vk::Extent2D img_size_;
+  vk::Extent2D img_extent_;
   vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
 
   vkbench::vkImage *src_img_, *dest_img_;
@@ -40,7 +40,7 @@ class ImageToImage : public commandTestBase {
 
 class BufferToImage : public commandTestBase {
  public:
-  BufferToImage(uint64_t img_size,
+  BufferToImage(uint64_t width,
                 std::string color,
                 std::string buffer_memory_property,
                 vkBase* base);
@@ -55,7 +55,7 @@ class BufferToImage : public commandTestBase {
 
  private:
   std::string color_;
-  vk::Extent2D img_size_;
+  vk::Extent2D img_extent_;
   vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
 
   vkbench::vkBuffer* buffer_;

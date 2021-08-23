@@ -13,11 +13,11 @@ namespace vkbench {
 namespace draw {
 const char* TEST_PREFIX = "draw";
 
-DrawSize::DrawSize(uint64_t size, vkBase* base) {
+DrawSize::DrawSize(uint64_t width, vkBase* base) {
   vk = base;
-  img_size_.setHeight(size).setWidth(size);
-  name_ = fmt::format("{}.DrawSize.{}", TEST_PREFIX, size);
-  desp_ = fmt::format("Draws {}x{} size image with solid color.", size, size);
+  img_extent_.setHeight(width).setWidth(width);
+  name_ = fmt::format("{}.DrawSize.{}", TEST_PREFIX, width);
+  desp_ = fmt::format("Draws {}x{} size image with solid color.", width, width);
 }
 void DrawSize::Initialize() {
   CreateRenderPass();
@@ -32,7 +32,7 @@ void DrawSize::Initialize() {
       .setRenderPass(render_pass_)
       .setClearValueCount(1)
       .setPClearValues(&clear_color)
-      .setRenderArea(vk::Rect2D({}, img_size_));
+      .setRenderArea(vk::Rect2D({}, img_extent_));
   cmd.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
   cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline_);
   cmd.draw(3, 1, 0, 0);
@@ -98,9 +98,11 @@ void DrawSize::CreateGraphicsPipeline() {
   input_assembly.setTopology(vk::PrimitiveTopology::eTriangleList);
 
   vk::Viewport viewport;
-  viewport.setWidth(img_size_.width).setHeight(img_size_.height).setMaxDepth(1);
+  viewport.setWidth(img_extent_.width)
+      .setHeight(img_extent_.height)
+      .setMaxDepth(1);
   vk::Rect2D scissor;
-  scissor.setOffset({0, 0}).setExtent(img_size_);
+  scissor.setOffset({0, 0}).setExtent(img_extent_);
   vk::PipelineViewportStateCreateInfo viewport_state;
   viewport_state.setViewportCount(1)
       .setPViewports(&viewport)
@@ -140,7 +142,7 @@ void DrawSize::CreateGraphicsPipeline() {
 void DrawSize::CreateFrameBuffers() {
   const vk::Device device = vk->GetDevice();
 
-  img_ = new vkbench::vkImage(vk, img_size_, img_format_,
+  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
                               vk::ImageUsageFlagBits::eColorAttachment |
                                   vk::ImageUsageFlagBits::eTransferSrc,
                               {vk::MemoryPropertyFlagBits::eDeviceLocal});
@@ -161,20 +163,20 @@ void DrawSize::CreateFrameBuffers() {
   frame_buffer_info.setRenderPass(render_pass_)
       .setAttachmentCount(1)
       .setPAttachments(&img_view_)
-      .setWidth(img_size_.width)
-      .setHeight(img_size_.height)
+      .setWidth(img_extent_.width)
+      .setHeight(img_extent_.height)
       .setLayers(1);
   frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
 
 Image DrawSize::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest =
-      img_->GetReadableImage(vk::ImageLayout::eGeneral, img_size_, img_format_);
+  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eGeneral, img_extent_,
+                                         img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
-  return Image((const unsigned char*)dest->GetMappedMemory(), img_size_,
+  return Image((const unsigned char*)dest->GetMappedMemory(), img_extent_,
                sub_resource_layout);
 }
 

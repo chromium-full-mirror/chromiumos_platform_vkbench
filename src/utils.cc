@@ -52,12 +52,12 @@ void vkbench::Image::savePPM(FilePath file_path) {
 
   const unsigned char* row_ptr = data_ + resource_layout_.offset;
   file << "P6\n"
-       << size_.width << "\n"
-       << size_.height << "\n"
+       << extent_.width << "\n"
+       << extent_.height << "\n"
        << 255 << std::endl;
-  for (uint32_t y = 0; y < size_.height; y++) {
+  for (uint32_t y = 0; y < extent_.height; y++) {
     unsigned int* row = (unsigned int*)row_ptr;
-    for (uint32_t x = 0; x < size_.width; x++) {
+    for (uint32_t x = 0; x < extent_.width; x++) {
       file.write(reinterpret_cast<char*>(row), 3);
       row++;
     }
@@ -77,11 +77,11 @@ void vkbench::Image::savePNG(FilePath file_path) {
     RUNTIME_ERROR("File {} couldn't be opened for writing", file_path);
   DEFER(fclose(file));
 
-  png_bytep* row_pointers = new png_bytep[sizeof(png_bytep) * size_.height];
+  png_bytep* row_pointers = new png_bytep[sizeof(png_bytep) * extent_.height];
   unsigned char* row_ptr = data_ + resource_layout_.offset;
-  for (int y = size_.height - 1; y >= 0; y--) {
-    row_pointers[y] = new png_byte[4 * size_.width];
-    memcpy(row_pointers[y], row_ptr, 4 * size_.width);
+  for (int y = extent_.height - 1; y >= 0; y--) {
+    row_pointers[y] = new png_byte[4 * extent_.width];
+    memcpy(row_pointers[y], row_ptr, 4 * extent_.width);
     row_ptr += resource_layout_.rowPitch;
   }
 
@@ -102,7 +102,7 @@ void vkbench::Image::savePNG(FilePath file_path) {
     RUNTIME_ERROR("error during writing png header");
   png_byte bit_depth = 8;   // 8 bits per channel RGBA
   png_byte color_type = 6;  // RGBA
-  png_set_IHDR(png_ptr, info_ptr, size_.width, size_.height, bit_depth,
+  png_set_IHDR(png_ptr, info_ptr, extent_.width, extent_.height, bit_depth,
                color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
                PNG_FILTER_TYPE_BASE);
   png_write_info(png_ptr, info_ptr);
@@ -117,7 +117,7 @@ void vkbench::Image::savePNG(FilePath file_path) {
     RUNTIME_ERROR("error during png_write_end");
   png_write_end(png_ptr, NULL);
 
-  for (int y = 0; y < size_.height; y++)
+  for (int y = 0; y < extent_.height; y++)
     delete row_pointers[y];
   delete[] row_pointers;
 }

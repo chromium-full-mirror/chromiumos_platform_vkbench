@@ -6,13 +6,13 @@
 
 namespace vkbench {
 vkImage::vkImage(vkBase* vkbase,
-                 vk::Extent2D img_size,
+                 vk::Extent2D extent,
                  vk::Format img_format,
                  vk::ImageUsageFlags usage,
                  vkbench::vkMemoryRequirement requirement,
                  vk::ImageTiling tiling) {
   vkbase_ = vkbase;
-  size_ = img_size;
+  extent_ = extent;
   format_ = img_format;
   tiling_ = tiling;
   mapped_memory_ = nullptr;
@@ -24,7 +24,7 @@ vkImage::vkImage(vkBase* vkbase,
       .setUsage(usage)
       .setMipLevels(1)
       .setArrayLayers(1)
-      .setExtent(vk::Extent3D(size_, 1))
+      .setExtent(vk::Extent3D(extent_, 1))
       .setQueueFamilyIndexCount(1)
       .setPQueueFamilyIndices(&vkbase_->GetGFXQueueFamilyIndex())
       .setInitialLayout(vk::ImageLayout::ePreinitialized)
@@ -84,9 +84,9 @@ void vkImage::FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y)) {
       GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
   auto data = (unsigned char*)GetMappedMemory();
   auto row_ptr = data + resource_layout.offset;
-  for (uint32_t y = 0; y < size_.height; y++) {
+  for (uint32_t y = 0; y < extent_.height; y++) {
     auto row = row_ptr;
-    for (uint32_t x = 0; x < size_.width; x++) {
+    for (uint32_t x = 0; x < extent_.width; x++) {
       std::array<uint8_t, 4> pixel = fill_function(y, x);
       memcpy(row, pixel.data(), sizeof(uint8_t) * 4);
       row += 4;
@@ -96,7 +96,7 @@ void vkImage::FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y)) {
 }
 
 vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
-                                   vk::Extent2D size,
+                                   vk::Extent2D extent,
                                    vk::Format format) {
   std::vector<vk::CommandBuffer> cmds =
       vkbase_->GetDevice().allocateCommandBuffers(
@@ -107,7 +107,7 @@ vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
   vk::CommandBuffer command = cmds[0];
 
   vkImage* dest = new vkbench::vkImage(
-      vkbase_, size, format, vk::ImageUsageFlagBits::eTransferDst,
+      vkbase_, extent, format, vk::ImageUsageFlagBits::eTransferDst,
       {vk::MemoryPropertyFlagBits::eHostCoherent |
        vk::MemoryPropertyFlagBits::eHostVisible},
       vk::ImageTiling::eLinear);
@@ -122,8 +122,8 @@ vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
       .setLayerCount(1);
   img_copy_region.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
       .setLayerCount(1);
-  img_copy_region.extent.setWidth(size.width)
-      .setHeight(size.height)
+  img_copy_region.extent.setWidth(extent.width)
+      .setHeight(extent.height)
       .setDepth(1);
   command.copyImage(this->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
                     dest->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,
