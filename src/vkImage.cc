@@ -7,15 +7,21 @@
 namespace vkbench {
 vkImage::vkImage(vkBase* vkbase,
                  vk::Extent2D extent,
-                 vk::Format img_format,
+                 vk::Format format,
                  vk::ImageUsageFlags usage,
                  vkbench::vkMemoryRequirement requirement,
                  vk::ImageTiling tiling) {
   vkbase_ = vkbase;
   extent_ = extent;
-  format_ = img_format;
+  format_ = format;
   tiling_ = tiling;
   mapped_memory_ = nullptr;
+
+  if (format_ != vk::Format::eR8G8B8A8Unorm &&
+      format_ != vk::Format::eR32G32B32A32Sfloat) {
+    throw not_supported_exception(
+        fmt::format("{} has not yet suppported", vk::to_string(format_)));
+  }
 
   vk::ImageCreateInfo img_create_info;
   img_create_info.setFormat(format_)
@@ -95,9 +101,7 @@ void vkImage::FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y)) {
   }
 }
 
-vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
-                                   vk::Extent2D extent,
-                                   vk::Format format) {
+vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout) {
   std::vector<vk::CommandBuffer> cmds =
       vkbase_->GetDevice().allocateCommandBuffers(
           {vkbase_->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
@@ -107,7 +111,7 @@ vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
   vk::CommandBuffer command = cmds[0];
 
   vkImage* dest = new vkbench::vkImage(
-      vkbase_, extent, format, vk::ImageUsageFlagBits::eTransferDst,
+      vkbase_, extent_, format_, vk::ImageUsageFlagBits::eTransferDst,
       {vk::MemoryPropertyFlagBits::eHostCoherent |
        vk::MemoryPropertyFlagBits::eHostVisible},
       vk::ImageTiling::eLinear);
@@ -122,8 +126,8 @@ vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout,
       .setLayerCount(1);
   img_copy_region.dstSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
       .setLayerCount(1);
-  img_copy_region.extent.setWidth(extent.width)
-      .setHeight(extent.height)
+  img_copy_region.extent.setWidth(extent_.width)
+      .setHeight(extent_.height)
       .setDepth(1);
   command.copyImage(this->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
                     dest->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,

@@ -22,8 +22,15 @@ class vkImage {
           vk::ImageTiling tiling = vk::ImageTiling::eOptimal);
   ~vkImage();
 
+  // GetExtent returns the extent of the image.
+  const vk::Extent2D& GetExtent2D() const { return extent_; }
+  // GetFormat returns the format of the image.
+  const vk::Format& GetFormat() const { return format_; }
+  // GetImage returns the underlying vkImage object.
   vk::Image GetImage() const { return img_; }
+  // GetMappedMemory returns the mapped memory of the underlying vkImage.
   void* GetMappedMemory();
+  // UnmapMemory unmap the mapped memory of the underlying vkImage.
   void UnmapMemory();
   // MoveLayout records the command to move the image from src to dst layout.
   void MoveLayout(vk::CommandBuffer cmd,
@@ -34,9 +41,7 @@ class vkImage {
 
   // GetReadableImage copys a image created with eTransferSrc and returns a
   // readable vkImage in vk::ImageLayout::eGeneral layout.
-  vkImage* GetReadableImage(vk::ImageLayout src_layout,
-                            vk::Extent2D extent,
-                            vk::Format format);
+  vkImage* GetReadableImage(vk::ImageLayout src_layout);
 
  private:
   vkBase* vkbase_;

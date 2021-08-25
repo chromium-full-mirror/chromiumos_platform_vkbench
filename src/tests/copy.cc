@@ -101,8 +101,8 @@ void ImageToImage::Destroy() {
 
 Image ImageToImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = src_img_->GetReadableImage(
-      vk::ImageLayout::eTransferSrcOptimal, img_extent_, img_format_);
+  vkImage* dest =
+      src_img_->GetReadableImage(vk::ImageLayout::eTransferSrcOptimal);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
@@ -199,8 +199,7 @@ void BufferToImage::Destroy() {
 
 Image BufferToImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eTransferDstOptimal,
-                                         img_extent_, img_format_);
+  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eTransferDstOptimal);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});

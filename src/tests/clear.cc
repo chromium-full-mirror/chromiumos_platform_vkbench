@@ -133,8 +133,8 @@ void LoadOp::CreateFrameBuffers() {
 
 Image LoadOp::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = img_->GetReadableImage(
-      vk::ImageLayout::eColorAttachmentOptimal, img_extent_, img_format_);
+  vkImage* dest =
+      img_->GetReadableImage(vk::ImageLayout::eColorAttachmentOptimal);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
@@ -207,8 +207,7 @@ void CmdClearImage::Destroy() {
 
 Image CmdClearImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eGeneral, img_extent_,
-                                         img_format_);
+  vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eGeneral);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
