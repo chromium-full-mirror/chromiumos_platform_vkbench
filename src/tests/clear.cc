@@ -48,7 +48,13 @@ LoadOp::LoadOp(vkBase* base,
 
 void LoadOp::Initialize() {
   CreateRenderPass();
-  CreateFrameBuffers();
+  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
+                              vk::ImageUsageFlagBits::eColorAttachment |
+                                  vk::ImageUsageFlagBits::eTransferSrc,
+                              {vk::MemoryPropertyFlagBits::eDeviceLocal},
+                              img_tiling_);
+  frame_buffer_ = DefaultFramebuffer(vk->GetDevice(), img_, render_pass_,
+                                     img_->GetDefaultImageView());
 
   vk::CommandBuffer cmd = GetCommandBuffer();
   cmd.begin(vk::CommandBufferBeginInfo());
@@ -69,7 +75,6 @@ void LoadOp::Destroy() {
   vkbench::commandTestBase::Destroy();
 
   vk::Device device = vk->GetDevice();
-  device.destroyImageView(img_view_);
   delete img_;
 
   device.destroyFramebuffer(frame_buffer_);
@@ -99,36 +104,6 @@ void LoadOp::CreateRenderPass() {
       .setSubpassCount(1)
       .setPSubpasses(&subpass);
   render_pass_ = vk->GetDevice().createRenderPass(render_pass_info);
-}
-
-void LoadOp::CreateFrameBuffers() {
-  const vk::Device device = vk->GetDevice();
-
-  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
-                              vk::ImageUsageFlagBits::eColorAttachment |
-                                  vk::ImageUsageFlagBits::eTransferSrc,
-                              {vk::MemoryPropertyFlagBits::eDeviceLocal},
-                              img_tiling_);
-  vk::ImageViewCreateInfo img_view_create_info;
-  img_view_create_info.setViewType(vk::ImageViewType::e2D)
-      .setFormat(img_format_)
-      .setImage(img_->GetImage());
-  img_view_create_info.subresourceRange
-      .setAspectMask(vk::ImageAspectFlagBits::eColor)
-      .setBaseMipLevel(0)
-      .setLevelCount(1)
-      .setBaseArrayLayer(0)
-      .setLayerCount(1);
-  img_view_ = device.createImageView(img_view_create_info);
-
-  vk::FramebufferCreateInfo frame_buffer_info;
-  frame_buffer_info.setRenderPass(render_pass_)
-      .setAttachmentCount(1)
-      .setPAttachments(&img_view_)
-      .setWidth(img_extent_.width)
-      .setHeight(img_extent_.height)
-      .setLayers(1);
-  frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
 
 Image LoadOp::GetImage() const {

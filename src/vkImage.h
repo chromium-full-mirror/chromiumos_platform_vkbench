@@ -23,11 +23,14 @@ class vkImage {
   ~vkImage();
 
   // GetExtent returns the extent of the image.
-  const vk::Extent2D& GetExtent2D() const { return extent_; }
+  const vk::Extent2D& GetExtent2D() const;
   // GetFormat returns the format of the image.
-  const vk::Format& GetFormat() const { return format_; }
+  const vk::Format& GetFormat() const;
   // GetImage returns the underlying vkImage object.
-  vk::Image GetImage() const { return img_; }
+  vk::Image GetImage() const;
+  // GetDefaultImageView returns a default image view. The image view would be
+  // destroyed by vkImage destructor.
+  vk::ImageView GetDefaultImageView();
   // GetMappedMemory returns the mapped memory of the underlying vkImage.
   void* GetMappedMemory();
   // UnmapMemory unmap the mapped memory of the underlying vkImage.
@@ -38,15 +41,15 @@ class vkImage {
                   vk::ImageLayout dst);
   // FillImage fills the image by the fill_function.
   void FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y));
-
   // GetReadableImage copys a image created with eTransferSrc and returns a
   // readable vkImage in vk::ImageLayout::eGeneral layout.
   vkImage* GetReadableImage(vk::ImageLayout src_layout);
 
- private:
+ protected:
   vkBase* vkbase_;
 
   vk::Image img_;
+  vk::ImageView img_view_;
   vk::Extent2D extent_;
   vk::Format format_;
   vk::ImageTiling tiling_;
@@ -55,6 +58,12 @@ class vkImage {
 
   DISALLOW_COPY_AND_ASSIGN(vkImage);
 };
+
+// DefaultFramebuffer returns a framebuffer with default settings.
+vk::Framebuffer DefaultFramebuffer(vk::Device device,
+                                   vkImage* img,
+                                   vk::RenderPass render_pass,
+                                   vk::ImageView img_view);
 
 }  // namespace vkbench
 #endif  // SRC_VKIMAGE_H_

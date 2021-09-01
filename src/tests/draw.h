@@ -29,7 +29,6 @@ class DrawSize : public commandTestBase {
  private:
   void CreateRenderPass();
   void CreateGraphicsPipeline();
-  void CreateFrameBuffers();
 
   vk::Extent2D img_extent_;
   vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
@@ -39,8 +38,6 @@ class DrawSize : public commandTestBase {
   vk::PipelineLayout pipeline_layout_;
   vk::Framebuffer frame_buffer_;
   vkImage* img_;
-  vk::ImageView img_view_;
-
   DISALLOW_COPY_AND_ASSIGN(DrawSize);
 };
 

@@ -61,6 +61,36 @@ void vkImage::UnmapMemory() {
   mapped_memory_ = nullptr;
 }
 
+const vk::Extent2D& vkImage::GetExtent2D() const {
+  return extent_;
+}
+
+const vk::Format& vkImage::GetFormat() const {
+  return format_;
+}
+
+vk::Image vkImage::GetImage() const {
+  return img_;
+}
+
+vk::ImageView vkImage::GetDefaultImageView() {
+  if (!img_view_) {
+    vk::ImageViewCreateInfo info;
+    info.setViewType(vk::ImageViewType::e2D)
+        .setFormat(GetFormat())
+        .setImage(GetImage());
+    vk::ImageSubresourceRange subresource_range;
+    subresource_range.setAspectMask(vk::ImageAspectFlagBits::eColor)
+        .setBaseMipLevel(0)
+        .setLevelCount(1)
+        .setBaseArrayLayer(0)
+        .setLayerCount(1);
+    info.setSubresourceRange(subresource_range);
+    img_view_ = vkbase_->GetDevice().createImageView(info);
+  }
+  return img_view_;
+}
+
 void vkImage::MoveLayout(vk::CommandBuffer cmd,
                          vk::ImageLayout src,
                          vk::ImageLayout dst) {
@@ -142,8 +172,25 @@ vkImage* vkImage::GetReadableImage(vk::ImageLayout src_layout) {
 }
 
 vkImage::~vkImage() {
+  if (img_view_) {
+    vkbase_->GetDevice().destroyImageView(img_view_);
+  }
   vkbase_->GetDevice().freeMemory(memory_);
   vkbase_->GetDevice().destroyImage(img_);
+}
+
+vk::Framebuffer DefaultFramebuffer(vk::Device device,
+                                   vkImage* img,
+                                   vk::RenderPass render_pass,
+                                   vk::ImageView img_view) {
+  vk::FramebufferCreateInfo info;
+  info.setRenderPass(render_pass)
+      .setAttachmentCount(1)
+      .setPAttachments(&img_view)
+      .setWidth(img->GetExtent2D().width)
+      .setHeight(img->GetExtent2D().height)
+      .setLayers(1);
+  return device.createFramebuffer(info);
 }
 
 }  // namespace vkbench

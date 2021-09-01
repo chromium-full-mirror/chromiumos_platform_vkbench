@@ -22,7 +22,12 @@ DrawSize::DrawSize(uint64_t width, vkBase* base) {
 void DrawSize::Initialize() {
   CreateRenderPass();
   CreateGraphicsPipeline();
-  CreateFrameBuffers();
+  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
+                              vk::ImageUsageFlagBits::eColorAttachment |
+                                  vk::ImageUsageFlagBits::eTransferSrc,
+                              {vk::MemoryPropertyFlagBits::eDeviceLocal});
+  frame_buffer_ = DefaultFramebuffer(vk->GetDevice(), img_, render_pass_,
+                                     img_->GetDefaultImageView());
   // Create a cmdBuffer with draw call.
   vk::CommandBuffer cmd = GetCommandBuffer();
   cmd.begin(vk::CommandBufferBeginInfo());
@@ -44,9 +49,7 @@ void DrawSize::Destroy() {
   vkbench::commandTestBase::Destroy();
 
   vk::Device device = vk->GetDevice();
-  device.destroyImageView(img_view_);
   delete img_;
-
   device.destroyFramebuffer(frame_buffer_);
   device.destroyRenderPass(render_pass_);
   device.destroyPipeline(graphics_pipeline_);
@@ -137,36 +140,6 @@ void DrawSize::CreateGraphicsPipeline() {
 
   graphics_pipeline_ =
       std::move(device.createGraphicsPipeline({}, pipelineInfo).value);
-}
-
-void DrawSize::CreateFrameBuffers() {
-  const vk::Device device = vk->GetDevice();
-
-  img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
-                              vk::ImageUsageFlagBits::eColorAttachment |
-                                  vk::ImageUsageFlagBits::eTransferSrc,
-                              {vk::MemoryPropertyFlagBits::eDeviceLocal});
-
-  vk::ImageViewCreateInfo img_view_create_info;
-  img_view_create_info.setViewType(vk::ImageViewType::e2D)
-      .setFormat(img_format_)
-      .setImage(img_->GetImage());
-  img_view_create_info.subresourceRange
-      .setAspectMask(vk::ImageAspectFlagBits::eColor)
-      .setBaseMipLevel(0)
-      .setLevelCount(1)
-      .setBaseArrayLayer(0)
-      .setLayerCount(1);
-  img_view_ = device.createImageView(img_view_create_info);
-
-  vk::FramebufferCreateInfo frame_buffer_info;
-  frame_buffer_info.setRenderPass(render_pass_)
-      .setAttachmentCount(1)
-      .setPAttachments(&img_view_)
-      .setWidth(img_extent_.width)
-      .setHeight(img_extent_.height)
-      .setLayers(1);
-  frame_buffer_ = device.createFramebuffer(frame_buffer_info);
 }
 
 Image DrawSize::GetImage() const {

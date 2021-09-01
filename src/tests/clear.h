@@ -42,7 +42,6 @@ class LoadOp : public commandTestBase {
   vk::RenderPass render_pass_;
   vk::Framebuffer frame_buffer_;
   vkImage* img_;
-  vk::ImageView img_view_;
 
   DISALLOW_COPY_AND_ASSIGN(LoadOp);
 };
