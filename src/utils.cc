@@ -115,11 +115,11 @@ void vkbench::Image::savePNG(FilePath file_path) {
   /* write header */
   if (setjmp(png_jmpbuf(png_ptr)))
     RUNTIME_ERROR("error during writing png header");
-  png_byte bit_depth = 8;   // 8 bits per channel RGBA
-  png_byte color_type = 6;  // RGBA
+  png_byte bit_depth = 8;                     // 8 bits per channel RGBA
+  png_byte color_type = PNG_COLOR_TYPE_RGBA;  // RGBA
   png_set_IHDR(png_ptr, info_ptr, extent_.width, extent_.height, bit_depth,
-               color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,
-               PNG_FILTER_TYPE_BASE);
+               color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+               PNG_FILTER_TYPE_DEFAULT);
   png_write_info(png_ptr, info_ptr);
 
   /* write bytes */
