@@ -13,13 +13,14 @@ namespace vkbench {
 namespace draw {
 const char* TEST_PREFIX = "draw";
 
-DrawSize::DrawSize(uint64_t width, vkBase* base) {
+Triangle::Triangle(uint64_t width, vkBase* base) {
   vk = base;
   img_extent_.setHeight(width).setWidth(width);
-  name_ = fmt::format("{}.DrawSize.{}", TEST_PREFIX, width);
+  name_ = fmt::format("{}.Triangle.{}", TEST_PREFIX, width);
   desp_ = fmt::format("Draws {}x{} size image with solid color.", width, width);
 }
-void DrawSize::Initialize() {
+
+void Triangle::Initialize() {
   CreateRenderPass();
   CreateGraphicsPipeline();
   img_ = new vkbench::vkImage(vk, img_extent_, img_format_,
@@ -45,7 +46,7 @@ void DrawSize::Initialize() {
   cmd.end();
 }
 
-void DrawSize::Destroy() {
+void Triangle::Destroy() {
   vkbench::commandTestBase::Destroy();
 
   vk::Device device = vk->GetDevice();
@@ -56,7 +57,7 @@ void DrawSize::Destroy() {
   device.destroyPipelineLayout(pipeline_layout_);
 }
 
-void DrawSize::CreateRenderPass() {
+void Triangle::CreateRenderPass() {
   vk::AttachmentDescription att_description;
   att_description.setSamples(vk::SampleCountFlagBits::e1)
       .setFormat(img_format_)
@@ -81,9 +82,9 @@ void DrawSize::CreateRenderPass() {
   render_pass_ = vk->GetDevice().createRenderPass(render_pass_info);
 }
 
-void DrawSize::CreateGraphicsPipeline() {
-  std::string vert_shader_code = readShaderFile("drawSizeTest.vert.spv");
-  std::string frag_shader_code = readShaderFile("drawSizeTest.frag.spv");
+void Triangle::CreateGraphicsPipeline() {
+  std::string vert_shader_code = readShaderFile("triangle.vert");
+  std::string frag_shader_code = readShaderFile("triangle.frag");
   vk::Device device = vk->GetDevice();
 
   vk::ShaderModule vert_shader_module =
@@ -142,7 +143,7 @@ void DrawSize::CreateGraphicsPipeline() {
       std::move(device.createGraphicsPipeline({}, pipelineInfo).value);
 }
 
-Image DrawSize::GetImage() const {
+Image Triangle::GetImage() const {
   const vk::Device device = vk->GetDevice();
   vkImage* dest = img_->GetReadableImage(vk::ImageLayout::eGeneral);
   DEFER(delete dest);
@@ -154,11 +155,11 @@ Image DrawSize::GetImage() const {
 
 std::vector<testBase*> GenTests() {
   return std::vector<testBase*>{
-      new DrawSize(16, vkBase::GetInstance()),
-      new DrawSize(64, vkBase::GetInstance()),
-      new DrawSize(128, vkBase::GetInstance()),
-      new DrawSize(512, vkBase::GetInstance()),
-      new DrawSize(1024, vkBase::GetInstance()),
+      new Triangle(16, vkBase::GetInstance()),
+      new Triangle(64, vkBase::GetInstance()),
+      new Triangle(128, vkBase::GetInstance()),
+      new Triangle(512, vkBase::GetInstance()),
+      new Triangle(1024, vkBase::GetInstance()),
   };
 }
 

@@ -133,7 +133,7 @@ void PrintDateTime() {
 }
 
 std::string readShaderFile(const std::string& filename) {
-  FilePath file_path = g_spirv_dir.Append(FilePath(filename));
+  FilePath file_path = g_spirv_dir.Append(FilePath(filename + ".spv"));
   std::ifstream file(file_path.value(), std::ios::ate | std::ios::binary);
   if (!file.is_open()) {
     RUNTIME_ERROR("Failed to open {}", file_path);

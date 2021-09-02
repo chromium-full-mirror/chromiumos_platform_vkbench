@@ -14,10 +14,10 @@
 namespace vkbench {
 namespace draw {
 
-class DrawSize : public commandTestBase {
+class Triangle : public commandTestBase {
  public:
-  DrawSize(uint64_t width, vkBase* base);
-  ~DrawSize() override = default;
+  Triangle(uint64_t width, vkBase* base);
+  ~Triangle() override = default;
 
   const char* Unit() const override { return "us"; }
   Image GetImage() const override;
@@ -38,7 +38,7 @@ class DrawSize : public commandTestBase {
   vk::PipelineLayout pipeline_layout_;
   vk::Framebuffer frame_buffer_;
   vkImage* img_;
-  DISALLOW_COPY_AND_ASSIGN(DrawSize);
+  DISALLOW_COPY_AND_ASSIGN(Triangle);
 };
 
 // GenTests generate all the draw tests.
