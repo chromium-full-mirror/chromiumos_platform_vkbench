@@ -179,15 +179,7 @@ void BufferToImage::Initialize() {
 
   // Records the command to copy buffer to image.
   cmd.begin(vk::CommandBufferBeginInfo());
-  vk::BufferImageCopy image_copy;
-  // BufferRowLength=0 or BufferImageHeight=0 means buffer tightly packed
-  // according to the imageExtent
-  image_copy.setBufferOffset(0).setBufferRowLength(0).setBufferImageHeight(0);
-  image_copy.setImageOffset(0)
-      .setImageExtent(vk::Extent3D(img_extent_, 1))
-      .setImageSubresource({vk::ImageAspectFlagBits::eColor, 0, 0, 1});
-  cmd.copyBufferToImage(buffer_->GetBuffer(), img_->GetImage(),
-                        vk::ImageLayout::eTransferDstOptimal, image_copy);
+  img_->CopyFrom(cmd, buffer_->GetBuffer());
   cmd.end();
 }
 

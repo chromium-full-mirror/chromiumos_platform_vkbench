@@ -31,6 +31,9 @@ class vkImage {
   // GetDefaultImageView returns a default image view. The image view would be
   // destroyed by vkImage destructor.
   vk::ImageView GetDefaultImageView();
+  // Copy records the command to copy the content of the vkBuffer object
+  // to the image.
+  void CopyFrom(vk::CommandBuffer, vk::Buffer buffer);
   // GetMappedMemory returns the mapped memory of the underlying vkImage.
   void* GetMappedMemory();
   // UnmapMemory unmap the mapped memory of the underlying vkImage.

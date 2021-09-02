@@ -91,6 +91,18 @@ vk::ImageView vkImage::GetDefaultImageView() {
   return img_view_;
 }
 
+void vkImage::CopyFrom(vk::CommandBuffer cmd, vk::Buffer buffer) {
+  vk::BufferImageCopy image_copy;
+  // BufferRowLength=0 or BufferImageHeight=0 means buffer tightly packed
+  // according to the imageExtent
+  image_copy.setBufferOffset(0).setBufferRowLength(0).setBufferImageHeight(0);
+  image_copy.setImageOffset(0)
+      .setImageExtent(vk::Extent3D(GetExtent2D(), 1))
+      .setImageSubresource({vk::ImageAspectFlagBits::eColor, 0, 0, 1});
+  cmd.copyBufferToImage(buffer, GetImage(),
+                        vk::ImageLayout::eTransferDstOptimal, image_copy);
+}
+
 void vkImage::MoveLayout(vk::CommandBuffer cmd,
                          vk::ImageLayout src,
                          vk::ImageLayout dst) {
