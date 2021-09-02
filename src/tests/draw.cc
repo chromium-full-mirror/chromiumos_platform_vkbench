@@ -174,8 +174,8 @@ void DrawSize::CreateFrameBuffers() {
 
 Image DrawSize::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = vk->GetReadableImage(img_, vk::ImageLayout::eGeneral,
-                                       img_size_, img_format_);
+  vkImage* dest =
+      img_->GetReadableImage(vk::ImageLayout::eGeneral, img_size_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "src/testBase.h"
+#include "src/vkImage.h"
 
 namespace vkbench {
 namespace clear {

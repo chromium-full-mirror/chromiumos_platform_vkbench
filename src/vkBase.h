@@ -12,41 +12,6 @@
 #include "src/utils.h"
 
 namespace vkbench {
-class vkBase;
-
-class vkImage {
- public:
-  vkImage(vkBase* vkbase,
-          vk::Extent2D img_size,
-          vk::Format img_format,
-          vk::ImageUsageFlags usage,
-          vk::MemoryPropertyFlags memory_properties,
-          vk::ImageTiling tiling = vk::ImageTiling::eOptimal);
-  ~vkImage();
-
-  vk::Image GetImage() const { return img_; }
-  void* GetMappedMemory();
-  void UnmapMemory();
-  // MoveLayout records the command to move the image from src to dst layout.
-  void MoveLayout(vk::CommandBuffer cmd,
-                  vk::ImageLayout src,
-                  vk::ImageLayout dst);
-  // FillImage fills the image by the fill_function.
-  void FillImage(std::array<uint8_t, 4> (*fill_function)(int x, int y));
-
- private:
-  vkBase* vkbase_;
-
-  vk::Image img_;
-  vk::Extent2D size_;
-  vk::Format format_;
-  vk::ImageTiling tiling_;
-  vk::DeviceMemory memory_;
-  void* mapped_memory_;
-
-  DISALLOW_COPY_AND_ASSIGN(vkImage);
-};
-
 class vkBase {
  public:
   virtual ~vkBase() = default;
@@ -65,12 +30,6 @@ class vkBase {
   // GetMemoryType returns the index of a memory type that has all the requested
   // property bits set.
   uint32_t GetMemoryType(uint32_t bits, vk::MemoryPropertyFlags properties);
-  // GetReadableImage copys a image created with eTransferSrc and returns a
-  // readable vkImage in vk::ImageLayout::eGeneral layout.
-  vkImage* GetReadableImage(vkImage* src,
-                            vk::ImageLayout src_layout,
-                            vk::Extent2D size,
-                            vk::Format format);
   // SubmitAndWait submits CommandBuffers and wait for its completion.
   void SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds);
 

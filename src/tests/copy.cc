@@ -23,11 +23,11 @@ CopyImage::CopyImage(uint64_t size, std::string color, vkBase* base) {
 }
 
 void CopyImage::Initialize() {
-  vkImage* temp_img = new vkImage(vk, img_size_, img_format_,
-                                  vk::ImageUsageFlagBits::eTransferSrc,
-                                  vk::MemoryPropertyFlagBits::eHostCoherent |
-                                      vk::MemoryPropertyFlagBits::eHostVisible,
-                                  vk::ImageTiling::eLinear);
+  vkImage* temp_img = new vkbench::vkImage(
+      vk, img_size_, img_format_, vk::ImageUsageFlagBits::eTransferSrc,
+      vk::MemoryPropertyFlagBits::eHostCoherent |
+          vk::MemoryPropertyFlagBits::eHostVisible,
+      vk::ImageTiling::eLinear);
   DEFER(delete temp_img);
   src_img_ = new vkbench::vkImage(vk, img_size_, img_format_,
                                   vk::ImageUsageFlagBits::eTransferSrc |
@@ -114,8 +114,8 @@ void CopyImage::Destroy() {
 
 Image CopyImage::GetImage() const {
   const vk::Device device = vk->GetDevice();
-  vkImage* dest = vk->GetReadableImage(
-      src_img_, vk::ImageLayout::eTransferSrcOptimal, img_size_, img_format_);
+  vkImage* dest = src_img_->GetReadableImage(
+      vk::ImageLayout::eTransferSrcOptimal, img_size_, img_format_);
   DEFER(delete dest);
   vk::SubresourceLayout sub_resource_layout = device.getImageSubresourceLayout(
       dest->GetImage(), {vk::ImageAspectFlagBits::eColor, 0, 0});
