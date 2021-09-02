@@ -78,13 +78,10 @@ void CopyImage::Initialize() {
   src_img_->MoveLayout(cmds[0], vk::ImageLayout::eTransferDstOptimal,
                        vk::ImageLayout::eTransferSrcOptimal);
   cmds[0].end();
-  vk::SubmitInfo info;
-  info.setCommandBufferCount(cmds.size()).setPCommandBuffers(cmds.data());
-  vk->GetGFXQueue().submit(info, {});
-  vk->GetGFXQueue().waitIdle();
+  vk->SubmitAndWait(cmds);
 
   // Create the command buffers to test the speed of copying.
-  cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
+  cmds_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
   vk::ImageCopy img_copy_region;
   img_copy_region.srcSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
@@ -95,27 +92,22 @@ void CopyImage::Initialize() {
       .setHeight(img_size_.height)
       .setDepth(1);
 
-  cmd_buffers_[0].begin(vk::CommandBufferBeginInfo());
-  cmd_buffers_[0].copyImage(
-      src_img_->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
-      dest_img_->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,
-      &img_copy_region);
-  cmd_buffers_[0].end();
-  info.setCommandBufferCount(1).setPCommandBuffers(cmd_buffers_.data());
-  smt_infos_.push_back(info);
+  cmds_[0].begin(vk::CommandBufferBeginInfo());
+  cmds_[0].copyImage(src_img_->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
+                     dest_img_->GetImage(),
+                     vk::ImageLayout::eTransferDstOptimal, 1, &img_copy_region);
+  cmds_[0].end();
 }
 
 void CopyImage::Run() {
-  vk->GetGFXQueue().submit(smt_infos_, {});
-  vk->GetGFXQueue().waitIdle();
+  vk->SubmitAndWait(cmds_);
 }
 
 void CopyImage::Destroy() {
   vk::Device device = vk->GetDevice();
   delete src_img_;
   delete dest_img_;
-  device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
-  smt_infos_.clear();
+  device.freeCommandBuffers(vk->GetCommandPool(), cmds_);
 }
 
 Image CopyImage::GetImage() const {

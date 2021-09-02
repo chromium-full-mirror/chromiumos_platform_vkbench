@@ -62,11 +62,17 @@ class vkBase {
   const uint32_t& GetGFXQueueFamilyIndex() const { return gfx_queue_idx_; }
 
   // Helper function
+  // GetMemoryType returns the index of a memory type that has all the requested
+  // property bits set.
   uint32_t GetMemoryType(uint32_t bits, vk::MemoryPropertyFlags properties);
+  // GetReadableImage copys a image created with eTransferSrc and returns a
+  // readable vkImage in vk::ImageLayout::eGeneral layout.
   vkImage* GetReadableImage(vkImage* src,
                             vk::ImageLayout src_layout,
                             vk::Extent2D size,
                             vk::Format format);
+  // SubmitAndWait submits CommandBuffers and wait for its completion.
+  void SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds);
 
  protected:
   // Vulkan general method.

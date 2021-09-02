@@ -33,8 +33,7 @@ class CopyImage : public testBase {
   std::string name_;
   std::string desp_;
   std::string color_;
-  std::vector<vk::SubmitInfo> smt_infos_;
-  std::vector<vk::CommandBuffer> cmd_buffers_;
+  std::vector<vk::CommandBuffer> cmds_;
   vk::Extent2D img_size_;
   vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
 

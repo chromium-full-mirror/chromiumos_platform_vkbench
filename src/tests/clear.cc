@@ -50,9 +50,9 @@ void LoadOp::Initialize() {
   CreateRenderPass();
   CreateFrameBuffers();
 
-  cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
+  cmds_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
-  cmd_buffers_[0].begin(vk::CommandBufferBeginInfo());
+  cmds_[0].begin(vk::CommandBufferBeginInfo());
   vk::RenderPassBeginInfo render_pass_info;
   render_pass_info.setFramebuffer(frame_buffer_)
       .setRenderPass(render_pass_)
@@ -60,20 +60,14 @@ void LoadOp::Initialize() {
       .setPClearValues(&clear_color_)
       .setRenderArea(vk::Rect2D({}, img_size_));
   for (uint32_t i = 0; i < CLEAR_CNT; i++) {
-    cmd_buffers_[0].beginRenderPass(render_pass_info,
-                                    vk::SubpassContents::eInline);
-    cmd_buffers_[0].endRenderPass();
+    cmds_[0].beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
+    cmds_[0].endRenderPass();
   }
-  cmd_buffers_[0].end();
-
-  vk::SubmitInfo info;
-  info.setCommandBufferCount(1).setPCommandBuffers(cmd_buffers_.data());
-  smt_infos_.push_back(info);
+  cmds_[0].end();
 }
 
 void LoadOp::Run() {
-  vk->GetGFXQueue().submit(smt_infos_, {});
-  vk->GetGFXQueue().waitIdle();
+  vk->SubmitAndWait(cmds_);
 }
 
 void LoadOp::Destroy() {
@@ -83,8 +77,7 @@ void LoadOp::Destroy() {
 
   device.destroyFramebuffer(frame_buffer_);
   device.destroyRenderPass(render_pass_);
-  device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
-  smt_infos_.clear();
+  device.freeCommandBuffers(vk->GetCommandPool(), cmds_);
 }
 
 void LoadOp::CreateRenderPass() {
@@ -201,37 +194,30 @@ void CmdClearImage::Initialize() {
   img_->MoveLayout(cmds[0], vk::ImageLayout::eUndefined,
                    vk::ImageLayout::eGeneral);
   cmds[0].end();
-  vk::SubmitInfo info;
-  info.setCommandBufferCount(cmds.size()).setPCommandBuffers(cmds.data());
-  vk->GetGFXQueue().submit(info, {});
-  vk->GetGFXQueue().waitIdle();
+  vk->SubmitAndWait(cmds);
 
-  cmd_buffers_ = device.allocateCommandBuffers(
+  cmds_ = device.allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
-  cmd_buffers_[0].begin(vk::CommandBufferBeginInfo());
+  cmds_[0].begin(vk::CommandBufferBeginInfo());
   std::vector<vk::ImageSubresourceRange> subresource_range;
   subresource_range.push_back(
       vk::ImageSubresourceRange({vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}));
   for (uint32_t i = 0; i < CLEAR_CNT; i++) {
-    cmd_buffers_[0].clearColorImage(img_->GetImage(), vk::ImageLayout::eGeneral,
-                                    clear_color_, subresource_range);
+    cmds_[0].clearColorImage(img_->GetImage(), vk::ImageLayout::eGeneral,
+                             clear_color_, subresource_range);
   }
-  cmd_buffers_[0].end();
-  info.setCommandBufferCount(1).setPCommandBuffers(cmd_buffers_.data());
-  smt_infos_.push_back(info);
+  cmds_[0].end();
 }
 
 void CmdClearImage::Run() {
-  vk->GetGFXQueue().submit(smt_infos_, {});
-  vk->GetGFXQueue().waitIdle();
+  vk->SubmitAndWait(cmds_);
 }
 
 void CmdClearImage::Destroy() {
   vk::Device device = vk->GetDevice();
   delete img_;
 
-  device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
-  smt_infos_.clear();
+  device.freeCommandBuffers(vk->GetCommandPool(), cmds_);
 }
 
 Image CmdClearImage::GetImage() const {

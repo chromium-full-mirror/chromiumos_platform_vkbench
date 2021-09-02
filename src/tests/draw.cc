@@ -21,9 +21,9 @@ void DrawSize::Initialize() {
   CreateGraphicsPipeline();
   CreateFrameBuffers();
   // Create a cmdBuffer with draw call.
-  cmd_buffers_ = vk->GetDevice().allocateCommandBuffers(
+  cmds_ = vk->GetDevice().allocateCommandBuffers(
       {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
-  for (const auto& buffer : cmd_buffers_) {
+  for (const auto& buffer : cmds_) {
     buffer.begin(vk::CommandBufferBeginInfo());
     vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f, 1.f});
     vk::RenderPassBeginInfo render_pass_info;
@@ -38,14 +38,10 @@ void DrawSize::Initialize() {
     buffer.endRenderPass();
     buffer.end();
   }
-  vk::SubmitInfo info;
-  info.setCommandBufferCount(1).setPCommandBuffers(cmd_buffers_.data());
-  smt_infos_.push_back(info);
 }
 
 void DrawSize::Run() {
-  vk->GetGFXQueue().submit(smt_infos_, {});
-  vk->GetGFXQueue().waitIdle();
+  vk->SubmitAndWait(cmds_);
 }
 
 void DrawSize::Destroy() {
@@ -57,8 +53,7 @@ void DrawSize::Destroy() {
   device.destroyRenderPass(render_pass_);
   device.destroyPipeline(graphics_pipeline_);
   device.destroyPipelineLayout(pipeline_layout_);
-  device.freeCommandBuffers(vk->GetCommandPool(), cmd_buffers_);
-  smt_infos_.clear();
+  device.freeCommandBuffers(vk->GetCommandPool(), cmds_);
 }
 
 void DrawSize::CreateRenderPass() {

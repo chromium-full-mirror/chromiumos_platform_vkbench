@@ -315,8 +315,8 @@ void vkBase::CreateLogicalDevice() {
 }
 
 void vkBase::CreateCommandPool() {
-  cmd_pool_ =
-      device_.createCommandPool({vk::CommandPoolCreateFlags(), gfx_queue_idx_});
+  cmd_pool_ = device_.createCommandPool(
+      {vk::CommandPoolCreateFlagBits::eResetCommandBuffer, gfx_queue_idx_});
 }
 
 void vkBase::Destroy() {
@@ -330,8 +330,6 @@ void vkBase::Destroy() {
   initialized_ = false;
 }
 
-// GetReadableImage copys a image created with eTransferSrc and returns a
-// readable vkImage in vk::ImageLayout::eGeneral layout.
 vkImage* vkBase::GetReadableImage(vkImage* src,
                                   vk::ImageLayout src_layout,
                                   vk::Extent2D size,
@@ -368,14 +366,17 @@ vkImage* vkBase::GetReadableImage(vkImage* src,
                    vk::ImageLayout::eGeneral);
   command.end();
 
-  std::vector<vk::SubmitInfo> submit_infos(1);
-  submit_infos[0].setCommandBufferCount(1).setPCommandBuffers(cmds.data());
-  gfx_queue_.submit(submit_infos, {});
-  gfx_queue_.waitIdle();
+  SubmitAndWait(cmds);
   return dest;
 }
 
-// Get the index of a memory type that has all the requested property bits set
+void vkBase::SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds) {
+  vk::SubmitInfo info;
+  info.setCommandBufferCount(cmds.size()).setPCommandBuffers(cmds.data());
+  gfx_queue_.submit(info, {});
+  gfx_queue_.waitIdle();
+}
+
 uint32_t vkBase::GetMemoryType(uint32_t bits,
                                vk::MemoryPropertyFlags properties) {
   for (uint32_t i = 0; i < mem_properties_.memoryTypeCount; i++) {

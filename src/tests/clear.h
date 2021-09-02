@@ -41,8 +41,7 @@ class LoadOp : public testBase {
   vk::Extent2D img_size_;
   vk::ClearValue clear_color_;
 
-  std::vector<vk::SubmitInfo> smt_infos_;
-  std::vector<vk::CommandBuffer> cmd_buffers_;
+  std::vector<vk::CommandBuffer> cmds_;
 
   vk::RenderPass render_pass_;
   vk::Framebuffer frame_buffer_;
@@ -80,8 +79,7 @@ class CmdClearImage : public testBase {
   vk::Extent2D img_size_;
   vk::ClearColorValue clear_color_;
 
-  std::vector<vk::SubmitInfo> smt_infos_;
-  std::vector<vk::CommandBuffer> cmd_buffers_;
+  std::vector<vk::CommandBuffer> cmds_;
   vkImage* img_;
 
   DISALLOW_COPY_AND_ASSIGN(CmdClearImage);
