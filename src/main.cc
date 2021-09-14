@@ -206,7 +206,7 @@ std::vector<vkbench::testBase*> genTests(
   std::stable_sort(all_tests.begin(), all_tests.end(),
                    [](vkbench::testBase* a, vkbench::testBase* b) -> bool {
                      if (a->vk == b->vk) {
-                       return strcmp(a->Name(), b->Name()) < 0;
+                       return strcmp(a->Name().c_str(), b->Name().c_str()) < 0;
                      }
                      return a->vk < b->vk;
                    });

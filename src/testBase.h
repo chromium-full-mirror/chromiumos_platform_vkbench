@@ -7,6 +7,7 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include <string>
 #include <vector>
 
 #include "src/filepath.h"
@@ -18,9 +19,9 @@ class testBase {
  public:
   virtual ~testBase() {}
   // Name of test.
-  virtual const char* Name() const = 0;
+  const std::string Name() const { return name_; }
   // Description of the test.
-  virtual const char* Desp() const = 0;
+  const std::string Desp() const { return desp_; }
   // Unit for formatted measurement.
   virtual const char* Unit() const = 0;
   // Given time elapse per iteration, format it into meaningful numbers.
@@ -47,6 +48,34 @@ class testBase {
   virtual void Destroy() = 0;
 
   vkbench::vkBase* vk;
+
+ protected:
+  std::string name_;
+  std::string desp_;
+};
+
+// commandTestBase submit a pre-recorded command buffers in its Run
+// method.
+class commandTestBase : public testBase {
+ public:
+  void Run() override { vk->SubmitAndWait(cmds_); }
+
+  void Destroy() override {
+    vk->GetDevice().freeCommandBuffers(vk->GetCommandPool(), cmds_);
+  }
+
+  // GetCommandBuffer returns a command buffer reference for submit later in Run
+  // Stage.
+  vk::CommandBuffer& GetCommandBuffer() {
+    if (cmds_.size() == 0) {
+      cmds_ = vk->GetDevice().allocateCommandBuffers(
+          {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
+    }
+    return cmds_[0];
+  }
+
+ private:
+  std::vector<vk::CommandBuffer> cmds_;
 };
 
 }  // namespace vkbench

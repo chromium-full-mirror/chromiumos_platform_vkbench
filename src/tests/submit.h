@@ -19,8 +19,6 @@ class BulkSubmit : public testBase {
   BulkSubmit(uint64_t submitCnt, vkBase* base);
   ~BulkSubmit() override = default;
 
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "us"; }
 
  protected:
@@ -29,8 +27,6 @@ class BulkSubmit : public testBase {
   void Destroy() override;
 
  private:
-  std::string name_;
-  std::string desp_;
   std::vector<vk::SubmitInfo> smt_infos_;
   std::vector<vk::CommandBuffer> cmd_buffers_;
   DISALLOW_COPY_AND_ASSIGN(BulkSubmit);
@@ -42,8 +38,6 @@ class MultiSubmitWaitIdle : public testBase {
   MultiSubmitWaitIdle(uint64_t submitCnt, vkBase* base);
   ~MultiSubmitWaitIdle() override = default;
 
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "us"; }
 
  protected:
@@ -52,8 +46,6 @@ class MultiSubmitWaitIdle : public testBase {
   void Destroy() override;
 
  private:
-  std::string name_;
-  std::string desp_;
   std::vector<vk::Fence> fences_;
   std::vector<vk::SubmitInfo> smt_infos_;
   std::vector<vk::CommandBuffer> cmd_buffers_;
@@ -66,8 +58,6 @@ class MultiSubmitMultiWaitForFence : public testBase {
  public:
   MultiSubmitMultiWaitForFence(uint64_t submitCnt, vkBase* base);
   ~MultiSubmitMultiWaitForFence() override = default;
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "us"; }
 
  protected:
@@ -76,8 +66,6 @@ class MultiSubmitMultiWaitForFence : public testBase {
   void Destroy() override;
 
  private:
-  std::string name_;
-  std::string desp_;
   std::vector<vk::Fence> fences_;
   std::vector<vk::SubmitInfo> smt_infos_;
   std::vector<vk::CommandBuffer> cmd_buffers_;
@@ -90,8 +78,6 @@ class MultiSubmitBulkWaitForFence : public testBase {
  public:
   MultiSubmitBulkWaitForFence(uint64_t submitCnt, vkBase* base);
   ~MultiSubmitBulkWaitForFence() override = default;
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "us"; }
 
  protected:
@@ -100,8 +86,6 @@ class MultiSubmitBulkWaitForFence : public testBase {
   void Destroy() override;
 
  private:
-  std::string name_;
-  std::string desp_;
   std::vector<vk::Fence> fences_;
   std::vector<vk::SubmitInfo> smt_infos_;
   std::vector<vk::CommandBuffer> cmd_buffers_;

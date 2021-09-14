@@ -14,7 +14,7 @@
 namespace vkbench {
 namespace clear {
 
-class LoadOp : public testBase {
+class LoadOp : public commandTestBase {
  public:
   LoadOp(vkBase* base,
          vk::Format format,
@@ -23,30 +23,22 @@ class LoadOp : public testBase {
          std::string color);
   ~LoadOp() override = default;
 
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "mpixels_sec"; }
   double FormatMeasurement(double time) override;
   Image GetImage() const override;
 
  protected:
   void Initialize() override;
-  void Run() override;
   void Destroy() override;
 
  private:
   void CreateRenderPass();
   void CreateFrameBuffers();
 
-  std::string name_;
-  std::string desp_;
   vk::Format img_format_;
   vk::ImageTiling img_tiling_;
   vk::Extent2D img_size_;
   vk::ClearValue clear_color_;
-
-  std::vector<vk::CommandBuffer> cmds_;
-
   vk::RenderPass render_pass_;
   vk::Framebuffer frame_buffer_;
   vkImage* img_;
@@ -55,7 +47,7 @@ class LoadOp : public testBase {
   DISALLOW_COPY_AND_ASSIGN(LoadOp);
 };
 
-class CmdClearImage : public testBase {
+class CmdClearImage : public commandTestBase {
  public:
   CmdClearImage(vkBase* base,
                 vk::Format format,
@@ -64,26 +56,19 @@ class CmdClearImage : public testBase {
                 std::string color);
   ~CmdClearImage() override = default;
 
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "mpixels_sec"; }
   double FormatMeasurement(double time) override;
   Image GetImage() const override;
 
  protected:
   void Initialize() override;
-  void Run() override;
   void Destroy() override;
 
  private:
-  std::string name_;
-  std::string desp_;
   vk::Format img_format_;
   vk::ImageTiling img_tiling_;
   vk::Extent2D img_size_;
   vk::ClearColorValue clear_color_;
-
-  std::vector<vk::CommandBuffer> cmds_;
   vkImage* img_;
 
   DISALLOW_COPY_AND_ASSIGN(CmdClearImage);

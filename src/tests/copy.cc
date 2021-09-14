@@ -51,15 +51,13 @@ void CopyImage::Initialize() {
     RUNTIME_ERROR("Unsupported colors for copy test: {}", color_);
   }
 
-  std::vector<vk::CommandBuffer> cmds = vk->GetDevice().allocateCommandBuffers(
-      {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
-  DEFER(vk->GetDevice().freeCommandBuffers(vk->GetCommandPool(), cmds));
-  cmds[0].begin(vk::CommandBufferBeginInfo());
-  dest_img_->MoveLayout(cmds[0], vk::ImageLayout::ePreinitialized,
+  vk::CommandBuffer cmd = GetCommandBuffer();
+  cmd.begin(vk::CommandBufferBeginInfo());
+  dest_img_->MoveLayout(cmd, vk::ImageLayout::ePreinitialized,
                         vk::ImageLayout::eTransferDstOptimal);
-  temp_img->MoveLayout(cmds[0], vk::ImageLayout::ePreinitialized,
+  temp_img->MoveLayout(cmd, vk::ImageLayout::ePreinitialized,
                        vk::ImageLayout::eTransferSrcOptimal);
-  src_img_->MoveLayout(cmds[0], vk::ImageLayout::ePreinitialized,
+  src_img_->MoveLayout(cmd, vk::ImageLayout::ePreinitialized,
                        vk::ImageLayout::eTransferDstOptimal);
 
   // Copy the generated linear tiling image to our source image.
@@ -71,17 +69,15 @@ void CopyImage::Initialize() {
   copy_region.extent.setWidth(img_size_.width)
       .setHeight(img_size_.height)
       .setDepth(1);
-  cmds[0].copyImage(temp_img->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
-                    src_img_->GetImage(), vk::ImageLayout::eTransferDstOptimal,
-                    1, &copy_region);
-  src_img_->MoveLayout(cmds[0], vk::ImageLayout::eTransferDstOptimal,
+  cmd.copyImage(temp_img->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
+                src_img_->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,
+                &copy_region);
+  src_img_->MoveLayout(cmd, vk::ImageLayout::eTransferDstOptimal,
                        vk::ImageLayout::eTransferSrcOptimal);
-  cmds[0].end();
-  vk->SubmitAndWait(cmds);
+  cmd.end();
+  vk->SubmitAndWait(cmd);
 
   // Create the command buffers to test the speed of copying.
-  cmds_ = vk->GetDevice().allocateCommandBuffers(
-      {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
   vk::ImageCopy img_copy_region;
   img_copy_region.srcSubresource.setAspectMask(vk::ImageAspectFlagBits::eColor)
       .setLayerCount(1);
@@ -90,23 +86,17 @@ void CopyImage::Initialize() {
   img_copy_region.extent.setWidth(img_size_.width)
       .setHeight(img_size_.height)
       .setDepth(1);
-
-  cmds_[0].begin(vk::CommandBufferBeginInfo());
-  cmds_[0].copyImage(src_img_->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
-                     dest_img_->GetImage(),
-                     vk::ImageLayout::eTransferDstOptimal, 1, &img_copy_region);
-  cmds_[0].end();
-}
-
-void CopyImage::Run() {
-  vk->SubmitAndWait(cmds_);
+  cmd.begin(vk::CommandBufferBeginInfo());
+  cmd.copyImage(src_img_->GetImage(), vk::ImageLayout::eTransferSrcOptimal,
+                dest_img_->GetImage(), vk::ImageLayout::eTransferDstOptimal, 1,
+                &img_copy_region);
+  cmd.end();
 }
 
 void CopyImage::Destroy() {
-  vk::Device device = vk->GetDevice();
+  vkbench::commandTestBase::Destroy();
   delete src_img_;
   delete dest_img_;
-  device.freeCommandBuffers(vk->GetCommandPool(), cmds_);
 }
 
 Image CopyImage::GetImage() const {

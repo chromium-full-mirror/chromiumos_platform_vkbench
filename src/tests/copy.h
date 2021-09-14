@@ -15,26 +15,20 @@ namespace vkbench {
 namespace copy {
 
 // Copy image copies the sampled image
-class CopyImage : public testBase {
+class CopyImage : public commandTestBase {
  public:
   CopyImage(uint64_t size, std::string color, vkBase* base);
   ~CopyImage() override = default;
 
-  const char* Name() const override { return name_.c_str(); }
-  const char* Desp() const override { return desp_.c_str(); }
   const char* Unit() const override { return "us"; }
   Image GetImage() const override;
 
  protected:
   void Initialize() override;
-  void Run() override;
   void Destroy() override;
 
  private:
-  std::string name_;
-  std::string desp_;
   std::string color_;
-  std::vector<vk::CommandBuffer> cmds_;
   vk::Extent2D img_size_;
   vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
 

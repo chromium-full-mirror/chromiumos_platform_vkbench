@@ -23,30 +23,25 @@ void DrawSize::Initialize() {
   CreateGraphicsPipeline();
   CreateFrameBuffers();
   // Create a cmdBuffer with draw call.
-  cmds_ = vk->GetDevice().allocateCommandBuffers(
-      {vk->GetCommandPool(), vk::CommandBufferLevel::ePrimary, 1});
-  for (const auto& buffer : cmds_) {
-    buffer.begin(vk::CommandBufferBeginInfo());
-    vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f, 1.f});
-    vk::RenderPassBeginInfo render_pass_info;
-    render_pass_info.setFramebuffer(frame_buffer_)
-        .setRenderPass(render_pass_)
-        .setClearValueCount(1)
-        .setPClearValues(&clear_color)
-        .setRenderArea(vk::Rect2D({}, img_size_));
-    buffer.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
-    buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline_);
-    buffer.draw(3, 1, 0, 0);
-    buffer.endRenderPass();
-    buffer.end();
-  }
-}
-
-void DrawSize::Run() {
-  vk->SubmitAndWait(cmds_);
+  vk::CommandBuffer cmd = GetCommandBuffer();
+  cmd.begin(vk::CommandBufferBeginInfo());
+  vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f, 1.f});
+  vk::RenderPassBeginInfo render_pass_info;
+  render_pass_info.setFramebuffer(frame_buffer_)
+      .setRenderPass(render_pass_)
+      .setClearValueCount(1)
+      .setPClearValues(&clear_color)
+      .setRenderArea(vk::Rect2D({}, img_size_));
+  cmd.beginRenderPass(render_pass_info, vk::SubpassContents::eInline);
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline_);
+  cmd.draw(3, 1, 0, 0);
+  cmd.endRenderPass();
+  cmd.end();
 }
 
 void DrawSize::Destroy() {
+  vkbench::commandTestBase::Destroy();
+
   vk::Device device = vk->GetDevice();
   device.destroyImageView(img_view_);
   delete img_;
@@ -55,7 +50,6 @@ void DrawSize::Destroy() {
   device.destroyRenderPass(render_pass_);
   device.destroyPipeline(graphics_pipeline_);
   device.destroyPipelineLayout(pipeline_layout_);
-  device.freeCommandBuffers(vk->GetCommandPool(), cmds_);
 }
 
 void DrawSize::CreateRenderPass() {
