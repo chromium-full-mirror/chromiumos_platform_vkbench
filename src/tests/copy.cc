@@ -42,13 +42,10 @@ void CopyImage::Initialize() {
       return std::array<uint8_t, 4>{255, 255, 255, 255};
     });
   } else if (color_ == "noise") {
-    // Use fixed random seed so it can be reproduced.
-    srand(0);
     temp_img->FillImage([](int x, int y) {
-      uint8_t r = 1.0 * rand() / RAND_MAX * 255;
-      uint8_t g = 1.0 * rand() / RAND_MAX * 255;
-      uint8_t b = 1.0 * rand() / RAND_MAX * 255;
-      return std::array<uint8_t, 4>{r, g, b, 255};
+      return std::array<uint8_t, 4>{static_cast<uint8_t>(randi(255)),
+                                    static_cast<uint8_t>(randi(255)),
+                                    static_cast<uint8_t>(randi(255)), 255};
     });
   } else {
     RUNTIME_ERROR("Unsupported colors for copy test: {}", color_);

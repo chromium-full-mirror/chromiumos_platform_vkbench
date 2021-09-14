@@ -211,3 +211,7 @@ bool check_dir_existence(const char* file_path) {
     return false;
   return S_ISDIR(buffer.st_mode);
 }
+
+uint32_t randi(uint32_t max) {
+  return rand() % (max + 1);
+}

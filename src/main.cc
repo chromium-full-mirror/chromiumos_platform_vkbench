@@ -232,6 +232,9 @@ int main(int argc, char* argv[]) {
   for (auto i = 0; i < all_tests.size(); i++) {
     auto& test = all_tests[i];
     for (auto iter = 0; iter < g_iteration; iter++) {
+      // Use fixed random seed for reproducibility.
+      // This ensures for each iteration, each tests got same random numbers.
+      srand(0);
       try {
         if (!test->vk->IsInitialized())
           test->vk->Initialize();

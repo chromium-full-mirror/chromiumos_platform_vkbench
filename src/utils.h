@@ -67,6 +67,8 @@ bool IsItemInVector(const std::vector<std::string>& list,
                     bool empty_value);
 bool check_file_existence(const char* file_path, struct stat* buffer = NULL);
 bool check_dir_existence(const char* file_path);
+// randi returns a random number between 0 and max.
+uint32_t randi(uint32_t max);
 
 enum DbgThrowType { THROW_NONE = 0, THROW_NOT_SUPPORT = 1, THROW_RUNTIME = 2 };
 
