@@ -43,6 +43,11 @@ class Image {
   vk::Extent2D size_;
   vk::SubresourceLayout resource_layout_;
 };
+
+class not_supported_exception : public std::runtime_error {
+ public:
+  not_supported_exception(std::string msg) : std::runtime_error(msg) {}
+};
 }  // namespace vkbench
 
 extern int g_verbose;
@@ -63,7 +68,9 @@ bool IsItemInVector(const std::vector<std::string>& list,
 bool check_file_existence(const char* file_path, struct stat* buffer = NULL);
 bool check_dir_existence(const char* file_path);
 
-inline void DbgPrintf(bool should_raise_exception,
+enum DbgThrowType { THROW_NONE = 0, THROW_NOT_SUPPORT = 1, THROW_RUNTIME = 2 };
+
+inline void DbgPrintf(DbgThrowType type,
                       const char* filename,
                       int line,
                       FILE* fileid,
@@ -78,19 +85,25 @@ inline void DbgPrintf(bool should_raise_exception,
         fmt::format("[{}:{}]", filename + dir_length + 1, line);
     content = fmt::format("{:<15} {}", debug_header, content);
   }
-  fmt::print(fileid, "{}\n", content);
-  if (should_raise_exception)
-    throw std::runtime_error(content);
+  switch (type) {
+    case THROW_NOT_SUPPORT:
+      throw vkbench::not_supported_exception(content);
+    case THROW_RUNTIME:
+      throw std::runtime_error(content);
+    case THROW_NONE:
+      // Simply print the message.
+      fmt::print(fileid, "{}\n", content);
+  }
 }
 
 template <typename S, typename... Args>
-void vlog(bool s,
+void vlog(DbgThrowType type,
           const char* file,
           int line,
           FILE* fileid,
           const S& format,
           Args&&... args) {
-  DbgPrintf(s, file, line, fileid, format,
+  DbgPrintf(type, file, line, fileid, format,
             fmt::make_args_checked<Args...>(format, args...));
 }
 
@@ -101,11 +114,13 @@ void vlog(bool s,
     }                          \
   } while (0)
 #define LOG(fmt, ...) \
-  vlog(false, __FILE__, __LINE__, stdout, fmt, ##__VA_ARGS__)
+  vlog(THROW_NONE, __FILE__, __LINE__, stdout, fmt, ##__VA_ARGS__)
 #define ERROR(fmt, ...) \
-  vlog(false, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
+  vlog(THROW_NONE, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
 #define RUNTIME_ERROR(fmt, ...) \
-  vlog(true, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
+  vlog(THROW_RUNTIME, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
+#define NOT_SUPPORT(fmt, ...) \
+  vlog(THROW_NOT_SUPPORT, __FILE__, __LINE__, stderr, fmt, ##__VA_ARGS__)
 
 // Put this in the declarations for a class to be uncopyable.
 #define DISALLOW_COPY(TypeName) TypeName(const TypeName&) = delete

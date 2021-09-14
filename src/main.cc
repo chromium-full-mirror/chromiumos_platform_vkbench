@@ -32,6 +32,10 @@ FilePath g_spirv_dir = FilePath("shaders");
 // g_out_dir is the path to the folder to store the output image.
 FilePath g_out_dir = FilePath("");
 
+const char RESULT_FMT[] = "@RESULT: {:<46s} = {:>10.2f} {:<15s}";
+const char SKIP_RESULT_FMT[] = "@RESULT: {:<46s} = SKIP[{}]";
+const char ERROR_RESULT_FMT[] = "@RESULT: {:<46s} = ERROR[{}]";
+
 // kLongOptions defines the options for argument options.
 static const struct option kLongOptions[] = {
     {"iterations", required_argument, nullptr, 'i'},
@@ -98,15 +102,15 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   if (score <= 0.01f)
     LOG("{}: measurement may not be accurate.", test->Name());
   score = test->FormatMeasurement(score);
-  LOG("@RESULT: {:<46s} = {:>10.2f} {:<15s}", test->Name(), score,
-      test->Unit());
+  LOG(RESULT_FMT, test->Name(), score, test->Unit());
   try {
     FilePath file_path =
         g_out_dir.Append(FilePath(fmt::format("{}.png", test->Name())));
-    vkbench::Image image = test->GetImage();
-    image.Save(file_path);
-  } catch (std::runtime_error err) {
-    DEBUG("Get runtime_error while SaveImage: {}.", err.what());
+    test->GetImage().Save(file_path);
+  } catch (vkbench::not_supported_exception err) {
+    // Catch the error here as not all tests would generate the image and we
+    // don't want to mark the test SKIP.
+    DEBUG("No image to save for test {}: {}", test->Name(), err.what());
   }
 }
 
@@ -220,7 +224,7 @@ int main(int argc, char* argv[]) {
     for (const auto& test : all_tests) {
       LOG("{}: {}", test->Name(), test->Desp());
     }
-    return false;
+    return 0;
   }
 
   LOG("@TEST_BEGIN");
@@ -234,8 +238,12 @@ int main(int argc, char* argv[]) {
         Run(test, 1000000);
         if (!g_hasty)
           test->vk->Destroy();
+      } catch (const vkbench::not_supported_exception error) {
+        // This catch should be checked before runtime_error as
+        // not_supported_exception is derived from runtime_error.
+        LOG(SKIP_RESULT_FMT, test->Name(), error.what());
       } catch (const std::runtime_error error) {
-        LOG("@RESULT: {:>46f} = ERROR[{}]", test->Name(), error.what());
+        LOG(ERROR_RESULT_FMT, test->Name(), error.what());
       }
     }
 

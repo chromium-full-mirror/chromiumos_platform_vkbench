@@ -255,7 +255,8 @@ uint32_t vkBase::GetMemoryType(uint32_t bits,
     }
     bits >>= 1;
   }
-  RUNTIME_ERROR("could not find a matching memory type");
+  NOT_SUPPORT("No matching memory type found for {}",
+              vk::to_string(properties));
   return 0;
 }
 

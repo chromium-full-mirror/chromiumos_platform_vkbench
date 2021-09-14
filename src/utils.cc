@@ -18,8 +18,7 @@ extern FilePath g_spirv_dir;
 
 void vkbench::Image::Save(FilePath file_path) {
   if (data_ == nullptr) {
-    DEBUG("No data to save to {}", file_path);
-    return;
+    RUNTIME_ERROR("No data to save");
   }
   std::string ext = "";
 

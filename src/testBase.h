@@ -27,7 +27,10 @@ class testBase {
   virtual double FormatMeasurement(double time) { return time; }
 
   // Image returns the rendered image.
-  virtual Image GetImage() const { return vkbench::Image(); }
+  virtual Image GetImage() const {
+    NOT_SUPPORT("Test doesn't implement GetImage method.");
+    return Image();
+  }
 
   // Test related resources allocation. The resources allocated here would be
   // shared by all Run iterations. Time spent here will not be recorded.
