@@ -23,7 +23,8 @@
 namespace vkbench {
 class Image {
  public:
-  Image() : data_(nullptr) {}
+  Image() = delete;
+  Image(const std::string& file_name);
   Image(const unsigned char* data,
         const vk::Extent2D extent,
         vk::SubresourceLayout resource_layout)
@@ -35,11 +36,24 @@ class Image {
 
   void Save(FilePath);
 
- private:
-  void savePPM(FilePath);
-  void savePNG(FilePath);
+  const vk::Extent2D Extent2D() const { return extent_; }
+  const unsigned char* Data() const { return data_; }
+  const vk::SubresourceLayout Layout() const { return resource_layout_; }
 
-  unsigned char* data_;
+ private:
+  // load loads image from file_path. It assumes data is in R8G8B8A8 format.
+  void load(FilePath file_path);
+  // savePPM saves data into file_path in PPM format. It assumes data is in
+  // R8G8B8A8 format.
+  void savePPM(FilePath file_path);
+  // savePNG saves data into file_path in PNG format. It assumes data is in
+  // R8G8B8A8 format.
+  void savePNG(FilePath file_path);
+  // loadPNG loads data from file_path with PNG format. It assumes data is in
+  // R8G8B8A8 format.
+  void loadPNG(FilePath file_path);
+
+  unsigned char* data_ = nullptr;
   vk::Extent2D extent_;
   vk::SubresourceLayout resource_layout_;
 };

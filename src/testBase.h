@@ -30,7 +30,7 @@ class testBase {
   // Image returns the rendered image.
   virtual Image GetImage() const {
     NOT_SUPPORT("Test doesn't implement GetImage method.");
-    return Image();
+    __builtin_unreachable();
   }
 
   // Test related resources allocation. The resources allocated here would be

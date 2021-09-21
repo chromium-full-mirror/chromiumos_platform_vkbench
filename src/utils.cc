@@ -16,6 +16,10 @@
 
 extern FilePath g_spirv_dir;
 
+vkbench::Image::Image(const std::string& file_name) {
+  load(g_spirv_dir.Append(FilePath(file_name)));
+}
+
 void vkbench::Image::Save(FilePath file_path) {
   if (data_ == nullptr) {
     RUNTIME_ERROR("No data to save");
@@ -41,8 +45,21 @@ void vkbench::Image::Save(FilePath file_path) {
   system("/bin/sync");
 }
 
-// savePPM saves data into file_path in PPM format. It assumes data is in
-// R8G8B8A8 format.
+void vkbench::Image::load(FilePath file_path) {
+  std::string ext = "";
+  std::string::size_type last_dot =
+      file_path.value().find_last_of(".", std::string::npos);
+  if (last_dot == std::string::npos) {
+    RUNTIME_ERROR("No image extension found for file: {}", file_path);
+  }
+  ext = file_path.value().substr(last_dot + 1);
+  if (ext == "png") {
+    loadPNG(file_path);
+  } else {
+    NOT_SUPPORT("Unknown extension: {}", ext);
+  }
+}
+
 void vkbench::Image::savePPM(FilePath file_path) {
   FilePath directory = file_path.DirName();
   CreateDirectory(directory);
@@ -65,8 +82,6 @@ void vkbench::Image::savePPM(FilePath file_path) {
   }
 }
 
-// savePNG saves data into file_path in PNG format. It assumes data is in
-// R8G8B8A8 format.
 void vkbench::Image::savePNG(FilePath file_path) {
   FilePath directory = file_path.DirName();
   CreateDirectory(directory);
@@ -120,6 +135,63 @@ void vkbench::Image::savePNG(FilePath file_path) {
   for (int y = 0; y < extent_.height; y++)
     delete row_pointers[y];
   delete[] row_pointers;
+}
+
+void vkbench::Image::loadPNG(FilePath file_path) {
+  FILE* fp = fopen(file_path.c_str(), "rb");
+  if (!fp) {
+    RUNTIME_ERROR("File {} could not be oppened", file_path.value());
+  }
+  DEFER(fclose(fp));
+
+  unsigned char header[8];
+  fread(header, 1, 8, fp);
+  if (png_sig_cmp(header, 0, 8)) {
+    RUNTIME_ERROR("Faile {} is not recognized as a PNG file",
+                  file_path.value());
+  }
+
+  png_structp png =
+      png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  if (!png) {
+    RUNTIME_ERROR("png_create_read_struct fails");
+  }
+
+  png_infop info = png_create_info_struct(png);
+  if (!info) {
+    RUNTIME_ERROR("png_create_info_struct fails");
+  }
+  if (setjmp(png_jmpbuf(png))) {
+    RUNTIME_ERROR("loadPNG fails to setjmp");
+  }
+  png_init_io(png, fp);
+  png_set_sig_bytes(png, 8);
+  png_read_info(png, info);
+
+  extent_.width = png_get_image_width(png, info);
+  extent_.height = png_get_image_height(png, info);
+  resource_layout_.offset = 0;
+  resource_layout_.rowPitch = png_get_rowbytes(png, info);
+  resource_layout_.size = extent_.height * resource_layout_.rowPitch;
+  png_byte color_type = png_get_color_type(png, info);
+  if (color_type != PNG_COLOR_TYPE_RGBA) {
+    RUNTIME_ERROR("Not recognized png color type: {}", color_type);
+  }
+  png_byte bit_depth = png_get_bit_depth(png, info);
+  if (bit_depth != 8) {
+    RUNTIME_ERROR("Not supported bit_depth: {}", bit_depth);
+  }
+  // read file
+  if (setjmp(png_jmpbuf(png))) {
+    RUNTIME_ERROR("PNG read image fails");
+  }
+  data_ = new unsigned char[extent_.height * resource_layout_.rowPitch];
+  png_bytep *row_ptrs = new png_bytep[extent_.height];
+  DEFER(delete row_ptrs);
+  for (int y = 0; y < extent_.height; y++) {
+    row_ptrs[y] = data_ + (extent_.height - 1 - y) * resource_layout_.rowPitch;
+  }
+  png_read_image(png, row_ptrs);
 }
 
 void PrintDateTime() {
