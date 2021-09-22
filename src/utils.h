@@ -106,7 +106,7 @@ void vlog(DbgThrowType type,
           const S& format,
           Args&&... args) {
   DbgPrintf(type, file, line, fileid, format,
-            fmt::make_args_checked<Args...>(format, args...));
+            fmt::make_format_args(args...));
 }
 
 #define DEBUG(fmt, ...)        \
