@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include <fmt/format.h>
+#include <utility>
 
 #include "src/tests/draw.h"
 
@@ -133,7 +134,7 @@ void DrawSize::CreateGraphicsPipeline() {
       .setRenderPass(render_pass_);
 
   graphics_pipeline_ =
-      (vk::Pipeline &&) device.createGraphicsPipeline({}, pipelineInfo);
+      std::move(device.createGraphicsPipeline({}, pipelineInfo).value);
 }
 
 void DrawSize::CreateFrameBuffers() {
