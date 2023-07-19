@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -18,7 +18,7 @@ ImageToImage::ImageToImage(uint64_t width, std::string color, vkBase* base) {
   img_extent_.setHeight(width).setWidth(width);
   color_ = color;
   name_ = fmt::format("{}.ImageToImage.{}.{}", TEST_PREFIX, color, width);
-  desp_ = fmt::format("Copy {}x{} size {} image using vkCopyImage.", width,
+  desp_ = fmt::format("Copy {}x{} size {} image using vkCmdCopyImage.", width,
                       width, color);
 }
 
@@ -199,6 +199,190 @@ Image BufferToImage::GetImage() const {
                sub_resource_layout);
 }
 
+BufferStream::BufferStream(vkBase* base) {
+  vk = base;
+  name_ = fmt::format("{}.BufferStream", TEST_PREFIX);
+  desp_ = fmt::format("Copy buffers to vertex buffers in a stream.");
+  img_extent_.setHeight(512).setWidth(512);
+}
+
+void BufferStream::CreateGraphicsPipeline() {
+  std::string vert_shader_code = readShaderFile("bufferStream.vert");
+  std::string frag_shader_code = readShaderFile("bufferStream.frag");
+
+  vk::Device device = vk->GetDevice();
+  vk::ShaderModule vert_shader_module =
+      CreateShaderModule(device, vert_shader_code);
+  DEFER(device.destroyShaderModule(vert_shader_module));
+  vk::ShaderModule frag_shader_module =
+      CreateShaderModule(device, frag_shader_code);
+  DEFER(device.destroyShaderModule(frag_shader_module));
+  std::vector<vk::PipelineShaderStageCreateInfo> shader_stages = {
+      {{}, vk::ShaderStageFlagBits::eVertex, vert_shader_module, "main"},
+      {{}, vk::ShaderStageFlagBits::eFragment, frag_shader_module, "main"}};
+
+  // binding dst_buffer_ to vertex shader.
+  vk::VertexInputBindingDescription binding_description;
+  binding_description.setStride(sizeof(float) * 2)
+      .setInputRate(vk::VertexInputRate::eVertex);
+
+  vk::VertexInputAttributeDescription attribute_description;
+  attribute_description.setLocation(0)
+      .setFormat(vk::Format::eR32G32Sfloat)
+      .setOffset(0);
+
+  vk::PipelineVertexInputStateCreateInfo vertex_input;
+  vertex_input.setVertexBindingDescriptionCount(1)
+      .setVertexAttributeDescriptionCount(1)
+      .setPVertexBindingDescriptions(&binding_description)
+      .setPVertexAttributeDescriptions(&attribute_description);
+  vk::PipelineInputAssemblyStateCreateInfo input_assembly;
+  input_assembly.setTopology(vk::PrimitiveTopology::eTriangleList);
+
+  vk::Viewport viewport;
+  viewport.setWidth(img_extent_.width)
+      .setHeight(img_extent_.height)
+      .setMaxDepth(1);
+  vk::Rect2D scissor;
+  scissor.setOffset({0, 0}).setExtent(img_extent_);
+  vk::PipelineViewportStateCreateInfo viewport_state;
+  viewport_state.setViewportCount(1)
+      .setPViewports(&viewport)
+      .setScissorCount(1)
+      .setPScissors(&scissor);
+
+  vk::PipelineRasterizationStateCreateInfo rasterizer;
+  rasterizer.setLineWidth(1);
+  vk::PipelineMultisampleStateCreateInfo multisampling;
+  multisampling.setRasterizationSamples(vk::SampleCountFlagBits::e1);
+  vk::PipelineColorBlendAttachmentState color_attachment;
+  color_attachment.setBlendEnable(false).setColorWriteMask(
+      vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
+      vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA);
+  vk::PipelineColorBlendStateCreateInfo color_info;
+  color_info.setAttachmentCount(1).setPAttachments(&color_attachment);
+
+  vk::PipelineLayoutCreateInfo layout_info;
+  pipeline_layout_ = device.createPipelineLayout(layout_info);
+
+  vk::GraphicsPipelineCreateInfo pipelineInfo;
+  pipelineInfo.setStageCount(2)
+      .setPStages(shader_stages.data())
+      .setPVertexInputState(&vertex_input)
+      .setPInputAssemblyState(&input_assembly)
+      .setPViewportState(&viewport_state)
+      .setPRasterizationState(&rasterizer)
+      .setPMultisampleState(&multisampling)
+      .setPColorBlendState(&color_info)
+      .setLayout(pipeline_layout_)
+      .setRenderPass(render_pass_);
+
+  graphics_pipeline_ = device.createGraphicsPipeline({}, pipelineInfo).value;
+}
+
+void BufferStream::CreateRenderPass() {
+  vk::AttachmentDescription att_description;
+  att_description.setSamples(vk::SampleCountFlagBits::e1)
+      .setFormat(img_format_)
+      .setLoadOp(vk::AttachmentLoadOp::eClear)
+      .setStoreOp(vk::AttachmentStoreOp::eStore)
+      .setInitialLayout(vk::ImageLayout::eUndefined)
+      .setFinalLayout(vk::ImageLayout::eGeneral);
+
+  vk::AttachmentReference att_reference;
+  att_reference.setAttachment(0).setLayout(
+      vk::ImageLayout::eColorAttachmentOptimal);
+  vk::SubpassDescription subpass;
+  subpass.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
+      .setColorAttachmentCount(1)
+      .setPColorAttachments(&att_reference);
+
+  vk::RenderPassCreateInfo render_pass_info;
+  render_pass_info.setAttachmentCount(1)
+      .setPAttachments(&att_description)
+      .setSubpassCount(1)
+      .setPSubpasses(&subpass);
+  render_pass_ = vk->GetDevice().createRenderPass(render_pass_info);
+}
+
+void BufferStream::Initialize() {
+  CreateRenderPass();
+  CreateGraphicsPipeline();
+
+  // Convert vertices_ into buffer.
+  src_buffer_ = new vkbench::vkBuffer(
+      vk, sizeof(vertices_), vk::BufferUsageFlagBits::eTransferSrc,
+      {vk::MemoryPropertyFlagBits::eDeviceLocal |
+       vk::MemoryPropertyFlagBits::eHostVisible});
+  auto data = reinterpret_cast<float**>(src_buffer_->GetMappedMemory());
+  memcpy(data, vertices_, sizeof(vertices_));
+
+  // Create a vertex buffer.
+  dst_buffer_ =
+      new vkbench::vkBuffer(vk, vertex_buffer_size_,
+                            vk::BufferUsageFlagBits::eTransferDst |
+                                vk::BufferUsageFlagBits::eVertexBuffer,
+                            {vk::MemoryPropertyFlagBits::eDeviceLocal});
+
+  // Create framebuffer for drawing.
+  img_ = new vkbench::vkImage(
+      vk, img_extent_, img_format_, vk::ImageUsageFlagBits::eColorAttachment,
+      {vk::MemoryPropertyFlagBits::eDeviceLocal}, vk::ImageTiling::eOptimal);
+
+  frame_buffer_ = DefaultFramebuffer(vk->GetDevice(), img_, render_pass_,
+                                     img_->GetDefaultImageView());
+
+  vk::ClearValue clear_color(std::array<float, 4>{0.f, 0.f, 0.f, 1.f});
+  render_pass_info_.setFramebuffer(frame_buffer_)
+      .setRenderPass(render_pass_)
+      .setClearValueCount(1)
+      .setPClearValues(&clear_color)
+      .setRenderArea(vk::Rect2D({}, img_extent_));
+
+  // Reset index to 0 so dst_buffer_ would be written from the beginning.
+  index_ = 0;
+}
+
+void BufferStream::Run() {
+  vk::CommandBuffer cmd = GetCommandBuffer();
+  uint64_t offset = index_ * sizeof(vertices_);
+  uint64_t buffer_offset = index_ * 3;
+  cmd.begin(vk::CommandBufferBeginInfo{});
+  auto buffer_size = dst_buffer_->GetSize();
+  if (offset + sizeof(vertices_) > buffer_size) {
+    cmd.fillBuffer(dst_buffer_->GetBuffer(), 0, buffer_size, 0);
+    offset = 0;
+    buffer_offset = 0;
+    index_ = 0;
+  }
+  vk::BufferCopy buffer_copy;
+  buffer_copy.setSize(sizeof(vertices_)).setSrcOffset(0).setDstOffset(offset);
+  cmd.copyBuffer(src_buffer_->GetBuffer(), dst_buffer_->GetBuffer(),
+                 buffer_copy);
+  cmd.bindVertexBuffers(0, dst_buffer_->GetBuffer(), {offset});
+
+  cmd.beginRenderPass(render_pass_info_, vk::SubpassContents::eInline);
+  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline_);
+  cmd.draw(3, 1, 0, 0);
+  cmd.endRenderPass();
+  cmd.end();
+  vk->SubmitAndWait(cmd);
+  index_++;
+}
+
+void BufferStream::Destroy() {
+  delete dst_buffer_;
+  delete src_buffer_;
+  delete img_;
+
+  vk::Device device = vk->GetDevice();
+  device.destroyFramebuffer(frame_buffer_);
+  device.destroyPipelineLayout(pipeline_layout_);
+  device.destroyPipeline(graphics_pipeline_);
+  device.destroyRenderPass(render_pass_);
+  vkbench::commandTestBase::Destroy();
+}
+
 std::vector<testBase*> GenTests() {
   std::vector<testBase*> tests;
   for (auto width : {64, 128, 512, 1024}) {
@@ -215,6 +399,7 @@ std::vector<testBase*> GenTests() {
       }
     }
   }
+  tests.push_back(new BufferStream(vkBase::GetInstance()));
   return tests;
 }
 

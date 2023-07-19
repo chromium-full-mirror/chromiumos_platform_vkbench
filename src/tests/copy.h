@@ -1,4 +1,4 @@
-// Copyright 2021 The Chromium OS Authors. All rights reserved.
+// Copyright 2021 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -63,6 +63,47 @@ class BufferToImage : public commandTestBase {
   vkbench::vkMemoryRequirement buffer_memory_requirement_;
 
   DISALLOW_COPY_AND_ASSIGN(BufferToImage);
+};
+
+class BufferStream : public commandTestBase {
+ public:
+  BufferStream(vkBase* base);
+  ~BufferStream() override = default;
+
+  const char* Unit() const override { return "us"; }
+
+ protected:
+  void Initialize() override;
+  void Run() override;
+  void Destroy() override;
+
+ private:
+  void CreateRenderPass();
+  void CreateGraphicsPipeline();
+
+  std::vector<vk::CommandBuffer> cmds_;
+  uint64_t index_ = 0;
+  // clockwise such that the triangle is culled
+  const float vertices_[3][2] = {
+      {0.0f, 0.0f},
+      {0.0f, 1.0f},
+      {1.0f, 0.0f},
+  };
+  uint32_t vertex_buffer_size_ = 1024 * 1024;
+
+  vkbench::vkBuffer* src_buffer_;
+  vkbench::vkBuffer* dst_buffer_;
+
+  vk::Extent2D img_extent_;
+  vk::Format img_format_ = vk::Format::eR8G8B8A8Unorm;
+  vkbench::vkImage* img_;
+  vk::Framebuffer frame_buffer_;
+
+  vk::RenderPassBeginInfo render_pass_info_;
+  vk::RenderPass render_pass_;
+  vk::Pipeline graphics_pipeline_;
+  vk::PipelineLayout pipeline_layout_;
+  DISALLOW_COPY_AND_ASSIGN(BufferStream);
 };
 
 // GenTests generate all the submit tests.
