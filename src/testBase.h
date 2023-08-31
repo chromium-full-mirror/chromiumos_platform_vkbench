@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium OS Authors. All rights reserved.
+// Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -24,7 +24,7 @@ class testBase {
   const std::string Desp() const { return desp_; }
   // Unit for formatted measurement.
   virtual const char* Unit() const = 0;
-  // Given time elapse per iteration, format it into meaningful numbers.
+  // Given microsecond time elapsed, format it into meaningful numbers.
   virtual double FormatMeasurement(double time) { return time; }
 
   // Image returns the rendered image.

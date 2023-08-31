@@ -70,7 +70,10 @@ class BufferStream : public commandTestBase {
   BufferStream(vkBase* base);
   ~BufferStream() override = default;
 
-  const char* Unit() const override { return "us"; }
+  const char* Unit() const override { return "mbytes_sec"; }
+  virtual double FormatMeasurement(double time) {
+    return sizeof(vertices_) / time;
+  }
 
  protected:
   void Initialize() override;

@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium OS Authors. All rights reserved.
+// Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -53,6 +53,7 @@ static const struct option kLongOptions[] = {
 // TimeTest times the test by looping it iteration times.
 // @param test: test to be excuted.
 // @param iteration: how many times should the test be executed.
+// @return time spent in microseconds.
 inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   uint64_t start = GetUTime();
   try {
