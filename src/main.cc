@@ -53,9 +53,9 @@ static const struct option kLongOptions[] = {
 // TimeTest times the test by looping it iteration times.
 // @param test: test to be excuted.
 // @param iteration: how many times should the test be executed.
-// @return time spent in microseconds.
+// @return time spent in nanoseconds.
 inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
-  uint64_t start = GetUTime();
+  uint64_t start = GetNTime();
   try {
     test->Setup();
   } catch (const vk::SystemError& err) {
@@ -68,12 +68,12 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   for (int i = 0; i < iteration; i++) {
     test->Run();
   }
-  return GetUTime() - start;
+  return GetNTime() - start;
 }
 
 // Run the test and pre/post processes.
 // @param duration_us: The test would to iterate till duration_us is reached.
-void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
+void Run(vkbench::testBase* test, const uint64_t duration_ns = 400000000) {
   try {
     test->Initialize();
   } catch (const vk::SystemError& err) {
@@ -87,18 +87,25 @@ void Run(vkbench::testBase* test, const uint64_t duration_us = 1000000) {
   TimeTest(test, 2);
   // Target minimum iteration is 1s for each test.
   uint64_t time = 0;
+  uint64_t time_prev = 0;
   uint64_t iteration = 1;
+  uint64_t iteration_prev = 0;
   double score = -1.f;
   do {
     time = TimeTest(test, iteration);
-    DEBUG("iterations: {}, time: {} us, time/iter: {} us", iteration, time,
+    DEBUG("iterations: {}, time: {} ns, time/iter: {} ns", iteration, time,
           time / iteration);
-    if (time > duration_us) {
-      score = time / iteration;
+    if (time > duration_ns) {
+      // We divide by 1000.0 to convert from nanoseconds to microseconds for use
+      // by the caller to compute Mpixel/sec.
+      score = (time + time_prev) / (iteration + iteration_prev) / 1000.0;
       break;
     }
+    iteration_prev = iteration;
+    time_prev = time;
     iteration = iteration * 2;
   } while ((1ull << 40) > iteration);
+
   // Returns 0.0 if it ran max iterations in less than test time.
   if (score <= 0.01f)
     LOG("{}: measurement may not be accurate.", test->Name());
@@ -239,7 +246,7 @@ int main(int argc, char* argv[]) {
       try {
         if (!test->vk->IsInitialized())
           test->vk->Initialize();
-        Run(test, 1000000);
+        Run(test);
         if (!g_hasty)
           test->vk->Destroy();
       } catch (const vkbench::not_supported_exception error) {

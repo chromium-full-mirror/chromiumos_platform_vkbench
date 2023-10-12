@@ -1,4 +1,4 @@
-// Copyright 2019 The Chromium OS Authors. All rights reserved.
+// Copyright 2019 The ChromiumOS Authors
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
@@ -74,6 +74,12 @@ inline uint64_t GetUTime() {
   struct timeval tv = {};
   gettimeofday(&tv, nullptr);
   return tv.tv_usec + 1000000ULL * static_cast<uint64_t>(tv.tv_sec);
+}
+
+inline uint64_t GetNTime() {
+  struct timespec tv = {};
+  clock_gettime(CLOCK_MONOTONIC, &tv);
+  return tv.tv_nsec + 1000000000ULL * static_cast<uint64_t>(tv.tv_sec);
 }
 
 bool IsItemInVector(const std::vector<std::string>& list,
