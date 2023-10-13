@@ -245,10 +245,14 @@ void vkBase::Destroy() {
 }
 
 void vkBase::SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds) {
+  Submit(cmds);
+  gfx_queue_.waitIdle();
+}
+
+void vkBase::Submit(const vk::ArrayProxy<vk::CommandBuffer> cmds) {
   vk::SubmitInfo info;
   info.setCommandBufferCount(cmds.size()).setPCommandBuffers(cmds.data());
   gfx_queue_.submit(info, {});
-  gfx_queue_.waitIdle();
 }
 
 uint32_t vkBase::GetMemoryType(uint32_t bits,

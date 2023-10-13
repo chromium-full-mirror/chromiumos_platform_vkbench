@@ -338,36 +338,27 @@ void BufferStream::Initialize() {
       .setClearValueCount(1)
       .setPClearValues(&clear_color)
       .setRenderArea(vk::Rect2D({}, img_extent_));
-
-  // Reset index to 0 so dst_buffer_ would be written from the beginning.
-  index_ = 0;
 }
 
-void BufferStream::Run() {
+void BufferStream::Setup(int i) {
   vk::CommandBuffer cmd = GetCommandBuffer();
-  uint64_t offset = index_ * sizeof(vertices_);
-  uint64_t buffer_offset = index_ * 3;
-  cmd.begin(vk::CommandBufferBeginInfo{});
+  cmd.begin(vk::CommandBufferBeginInfo{
+      vk::CommandBufferUsageFlagBits::eSimultaneousUse});
   auto buffer_size = dst_buffer_->GetSize();
-  if (offset + sizeof(vertices_) > buffer_size) {
-    cmd.fillBuffer(dst_buffer_->GetBuffer(), 0, buffer_size, 0);
-    offset = 0;
-    buffer_offset = 0;
-    index_ = 0;
+  uint32_t total_number = buffer_size / sizeof(vertices_);
+  uint64_t data_size = sizeof(vertices_);
+  uint64_t offset = 0;
+  for (auto j = 0; j < i; j++) {
+    if (offset + data_size > buffer_size) {
+      offset = 0;
+    }
+    vk::BufferCopy buffer_copy;
+    buffer_copy.setSize(data_size).setSrcOffset(0).setDstOffset(offset);
+    cmd.copyBuffer(src_buffer_->GetBuffer(), dst_buffer_->GetBuffer(),
+                   buffer_copy);
+    offset += data_size;
   }
-  vk::BufferCopy buffer_copy;
-  buffer_copy.setSize(sizeof(vertices_)).setSrcOffset(0).setDstOffset(offset);
-  cmd.copyBuffer(src_buffer_->GetBuffer(), dst_buffer_->GetBuffer(),
-                 buffer_copy);
-  cmd.bindVertexBuffers(0, dst_buffer_->GetBuffer(), {offset});
-
-  cmd.beginRenderPass(render_pass_info_, vk::SubpassContents::eInline);
-  cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, graphics_pipeline_);
-  cmd.draw(3, 1, 0, 0);
-  cmd.endRenderPass();
   cmd.end();
-  vk->SubmitAndWait(cmd);
-  index_++;
 }
 
 void BufferStream::Destroy() {
@@ -380,7 +371,7 @@ void BufferStream::Destroy() {
   device.destroyPipelineLayout(pipeline_layout_);
   device.destroyPipeline(graphics_pipeline_);
   device.destroyRenderPass(render_pass_);
-  vkbench::commandTestBase::Destroy();
+  vkbench::singleCommandTestBase::Destroy();
 }
 
 std::vector<testBase*> GenTests() {

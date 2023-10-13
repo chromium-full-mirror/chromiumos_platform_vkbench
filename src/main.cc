@@ -55,9 +55,9 @@ static const struct option kLongOptions[] = {
 // @param iteration: how many times should the test be executed.
 // @return time spent in nanoseconds.
 inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
-  uint64_t start = GetNTime();
+  test->vk->GetGFXQueue().waitIdle();
   try {
-    test->Setup();
+    test->Setup(iteration);
   } catch (const vk::SystemError& err) {
     LOG("Setup failed: {}", err.what());
     test->Cleanup();
@@ -65,9 +65,10 @@ inline uint64_t TimeTest(vkbench::testBase* test, uint64_t iteration) {
   }
   DEFER(test->Cleanup());
 
-  for (int i = 0; i < iteration; i++) {
-    test->Run();
-  }
+  test->vk->GetGFXQueue().waitIdle();
+  uint64_t start = GetNTime();
+  test->RunFunc(iteration);
+  test->vk->GetGFXQueue().waitIdle();
   return GetNTime() - start;
 }
 

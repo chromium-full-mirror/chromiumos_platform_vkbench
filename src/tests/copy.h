@@ -65,27 +65,25 @@ class BufferToImage : public commandTestBase {
   DISALLOW_COPY_AND_ASSIGN(BufferToImage);
 };
 
-class BufferStream : public commandTestBase {
+class BufferStream : public singleCommandTestBase {
  public:
   BufferStream(vkBase* base);
   ~BufferStream() override = default;
 
   const char* Unit() const override { return "mbytes_sec"; }
-  virtual double FormatMeasurement(double time) {
+  double FormatMeasurement(double time) override {
     return sizeof(vertices_) / time;
   }
 
  protected:
   void Initialize() override;
-  void Run() override;
+  void Setup(int i) override;
   void Destroy() override;
 
  private:
   void CreateRenderPass();
   void CreateGraphicsPipeline();
 
-  std::vector<vk::CommandBuffer> cmds_;
-  uint64_t index_ = 0;
   // clockwise such that the triangle is culled
   const float vertices_[3][2] = {
       {0.0f, 0.0f},

@@ -15,6 +15,16 @@
 #include "src/vkBase.h"
 
 namespace vkbench {
+// testBase are the base class.
+// Test are executed and measured in the following order
+// - Initialize(), time NOT recorded
+// ------------------- i-th iteration ----------------------
+// - Setup(i), time NOT recorded
+// - for i times
+//     - Run(), time IS recorded
+// - Cleanup(), time NOT recorded
+// ---------------------------------------------------------
+// - Destroy(), time NOT recorded
 class testBase {
  public:
   virtual ~testBase() {}
@@ -33,19 +43,22 @@ class testBase {
     __builtin_unreachable();
   }
 
-  // Test related resources allocation. The resources allocated here would be
-  // shared by all Run iterations. Time spent here will not be recorded.
+  // Test related resources allocation.
   virtual void Initialize() {}
-  // Test configuration before running the test. This will run once before
-  // each Run loop. Time spent here will be recorded.
-  virtual void Setup() {}
-  // Test body. Time spent will be recorded.
+  // Test configuration before running the test.
+  virtual void Setup(int iteration) {}
+  // Test body.
   virtual void Run() = 0;
-  // Test cleanup after looping Run. Time spent here will be recorded.
+  // Test cleanup after looping Run.
   virtual void Cleanup() {}
-  // Free and Destroy any resources allocated during Initialize. Time
-  // spent here will not be recorded.
+  // Free and Destroy any resources allocated during Initialize.
   virtual void Destroy() = 0;
+
+  virtual void RunFunc(int iteration) {
+    for (auto i = 0; i < iteration; i++) {
+      Run();
+    }
+  }
 
   vkbench::vkBase* vk;
 
@@ -76,6 +89,25 @@ class commandTestBase : public testBase {
 
  private:
   std::vector<vk::CommandBuffer> cmds_;
+};
+
+// singleCommandTestBase submit a pre-recorded command buffers in its Run
+// method.
+// The main difference is that its Run method are only executed once in
+// each iteration. Tests should record its command buffer in Setup phase by
+// looping it i-th time.
+//
+// Test are executed and measured in the following order
+// - Initialize, time NOT recorded
+// ------------------- i-th iteration ----------------------
+// - Setup(i), time NOT recorded
+// - Run(), time IS recorded
+// - Cleanup(), time NOT recorded
+// ---------------------------------------------------------
+// - Destroy(), time NOT recorded
+class singleCommandTestBase : public commandTestBase {
+ public:
+  void RunFunc(int i) override { Run(); }
 };
 
 }  // namespace vkbench

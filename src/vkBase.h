@@ -48,7 +48,10 @@ class vkBase {
   // GetMemoryType returns the index of a memory type that has all the requested
   // property bits set.
   uint32_t GetMemoryType(uint32_t bits, vkMemoryRequirement requirement);
-  // SubmitAndWait submits CommandBuffers and wait for its completion.
+  // Submit submits the CommandBuffers.
+  void Submit(const vk::ArrayProxy<vk::CommandBuffer> cmds);
+  // SubmitAndWait submits CommandBuffers and wait for graphics pipe to become
+  // idle.
   void SubmitAndWait(const vk::ArrayProxy<vk::CommandBuffer> cmds);
 
  protected:
