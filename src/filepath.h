@@ -34,7 +34,7 @@ class FilePath {
 template <>
 struct fmt::formatter<FilePath> : formatter<string_view> {
   template <typename FormatContext>
-  auto format(FilePath c, FormatContext& ctx) {
+  auto format(FilePath c, FormatContext& ctx) const {
     return formatter<string_view>::format(std::string(c.c_str()), ctx);
   }
 };
